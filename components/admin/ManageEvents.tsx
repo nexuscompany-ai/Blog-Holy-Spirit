@@ -1,18 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, MapPin, Clock, Plus, Trash2, Tag, CheckCircle2, Eye, EyeOff, Power, Archive, AlertTriangle, Zap, ImageIcon, Upload, Camera } from 'lucide-react';
-
-interface HolyEvent {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  description: string;
-  category: string;
-  status: 'active' | 'inactive';
-  image?: string;
-}
+import { Calendar, MapPin, Clock, Plus, Trash2, CheckCircle2, Eye, EyeOff, Archive, Zap, Camera } from 'lucide-react';
+import { dbService, HolyEvent } from '../../db';
 
 const ManageEvents: React.FC = () => {
   const [events, setEvents] = useState<HolyEvent[]>([]);
@@ -31,17 +20,19 @@ const ManageEvents: React.FC = () => {
     image: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&q=80&w=800'
   });
 
+  const loadEvents = async () => {
+    const allEvents = await dbService.getEvents();
+    setEvents(allEvents);
+  };
+
   useEffect(() => {
-    const saved = localStorage.getItem('hs_events');
-    if (saved) setEvents(JSON.parse(saved));
+    loadEvents();
   }, []);
 
-  const saveEvent = () => {
+  const saveEvent = async () => {
     if (!newEvent.title || !newEvent.date) return;
     const event: HolyEvent = { ...newEvent, id: Date.now().toString() };
-    const updated = [event, ...events];
-    setEvents(updated);
-    localStorage.setItem('hs_events', JSON.stringify(updated));
+    await dbService.saveEvent(event);
     setNewEvent({ 
       title: '', 
       date: '', 
@@ -53,6 +44,7 @@ const ManageEvents: React.FC = () => {
       image: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&q=80&w=800'
     });
     setSuccess(true);
+    await loadEvents();
     setTimeout(() => setSuccess(false), 3000);
   };
 
@@ -67,18 +59,17 @@ const ManageEvents: React.FC = () => {
     }
   };
 
-  const deleteEvent = (id: string) => {
-    const updated = events.filter(e => e.id !== id);
-    setEvents(updated);
-    localStorage.setItem('hs_events', JSON.stringify(updated));
+  const deleteEvent = async (id: string) => {
+    await dbService.deleteEvent(id);
+    await loadEvents();
   };
 
-  const toggleStatus = (id: string) => {
-    const updated = events.map(e => 
-      e.id === id ? { ...e, status: e.status === 'active' ? 'inactive' : 'active' } : e
-    );
-    setEvents(updated);
-    localStorage.setItem('hs_events', JSON.stringify(updated));
+  const toggleStatus = async (id: string) => {
+    const event = events.find(e => e.id === id);
+    if (!event) return;
+    const newStatus = event.status === 'active' ? 'inactive' : 'active';
+    await dbService.updateEvent(id, { status: newStatus });
+    await loadEvents();
   };
 
   const filteredEvents = events.filter(e => e.status === activeListTab);
@@ -235,6 +226,11 @@ const ManageEvents: React.FC = () => {
               </div>
             </div>
           ))}
+          {filteredEvents.length === 0 && (
+            <div className="col-span-full py-20 text-center border border-dashed border-white/5 rounded-3xl">
+              <p className="text-gray-600 text-xs font-bold uppercase">Nenhum evento nesta categoria.</p>
+            </div>
+          )}
         </div>
       </section>
 

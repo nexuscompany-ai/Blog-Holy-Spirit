@@ -1,6 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
-import { BookOpen, Share2, Calendar as CalendarIcon, MessageCircle, MapPin, Clock } from 'lucide-react';
+// Added BookOpen to the imports from lucide-react
+import { Calendar as CalendarIcon, MessageCircle, MapPin, Clock, BookOpen } from 'lucide-react';
+import { dbService, HolyEvent, HolySettings } from '../db';
 
 export interface BlogPost {
   id: string;
@@ -13,35 +15,28 @@ export interface BlogPost {
   date: string;
 }
 
-interface HolyEvent {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  description: string;
-  category: string;
-  status: 'active' | 'inactive';
-  image?: string;
-}
-
 const BlogSection: React.FC = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [events, setEvents] = useState<HolyEvent[]>([]);
   const [activeTab, setActiveTab] = useState<'articles' | 'events'>('articles');
+  const [settings, setSettings] = useState<HolySettings | null>(null);
   
-  const settings = JSON.parse(localStorage.getItem('hs_settings') || '{"phone": "5511999999999"}');
-  const waLink = `https://wa.me/${settings.phone.replace(/\D/g, '')}`;
+  const waLink = settings ? `https://wa.me/${settings.phone.replace(/\D/g, '')}` : '#';
 
   useEffect(() => {
-    const savedPosts = localStorage.getItem('hs_blogs');
-    const savedEvents = localStorage.getItem('hs_events');
+    const fetchData = async () => {
+      const [allPosts, allEvents, currentSettings] = await Promise.all([
+        dbService.getBlogs(),
+        dbService.getEvents(),
+        dbService.getSettings()
+      ]);
+      
+      setPosts(allPosts);
+      setEvents(allEvents.filter(e => e.status === 'active'));
+      setSettings(currentSettings);
+    };
     
-    if (savedPosts) setPosts(JSON.parse(savedPosts));
-    if (savedEvents) {
-      const allEvents = JSON.parse(savedEvents);
-      setEvents(allEvents.filter((e: HolyEvent) => e.status === 'active'));
-    }
+    fetchData();
   }, []);
 
   return (
@@ -108,6 +103,12 @@ const BlogSection: React.FC = () => {
                 </div>
               </article>
             ))}
+            {posts.length === 0 && (
+              <div className="col-span-full py-20 text-center border border-dashed border-white/10 rounded-[40px]">
+                 <BookOpen size={48} className="mx-auto text-zinc-800 mb-4" />
+                 <p className="text-gray-600 font-black uppercase text-xs tracking-widest">Aguardando as primeiras palavras do Templo...</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="grid md:grid-cols-3 gap-8">

@@ -1,13 +1,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Send, Sparkles, Save, Type as TypeIcon, Loader2, CheckCircle2, 
-  Image as ImageIcon, Upload, PenTool, Edit3, AlignLeft,
-  AlertCircle, Clock, Calendar, ShieldAlert, Zap, 
-  ChevronRight, Activity, BrainCircuit, Globe, Info, Check, EyeOff, Camera
+  Send, Sparkles, Loader2, CheckCircle2, 
+  Upload, PenTool, Edit3, Clock, Calendar, 
+  ShieldAlert, Zap, BrainCircuit, Globe, EyeOff, Camera
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { BlogPost } from '../BlogSection';
+import { dbService } from '../../db';
 
 interface CreateBlogProps {
   onSuccess: () => void;
@@ -21,22 +21,16 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
   const [step, setStep] = useState<'input' | 'editing'>('input');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Opções de Edição
   const [includeImage, setIncludeImage] = useState(true);
   
-  // Configurações de Postagens Automáticas
-  const [autoConfig, setAutoConfig] = useState(() => {
-    const saved = localStorage.getItem('hs_auto_config');
-    return saved ? JSON.parse(saved) : {
-      enabled: false,
-      frequency: 'daily', // daily, weekly, monthly
-      days: ['Seg', 'Qua', 'Sex'],
-      time: '09:00',
-      lastRun: null
-    };
+  const [autoConfig, setAutoConfig] = useState({
+    enabled: false,
+    frequency: 'daily',
+    days: ['Seg', 'Qua', 'Sex'],
+    time: '09:00',
+    lastRun: null
   });
 
-  // Artigo States
   const [iaPrompt, setIaPrompt] = useState('');
   const [articleData, setArticleData] = useState({
     title: '',
@@ -56,10 +50,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     "Otimizando estrutura para máxima legibilidade...",
     "Finalizando revisão de tom de voz e SEO..."
   ];
-
-  useEffect(() => {
-    localStorage.setItem('hs_auto_config', JSON.stringify(autoConfig));
-  }, [autoConfig]);
 
   useEffect(() => {
     let interval: any;
@@ -84,18 +74,16 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
 
   const generateWithIA = async () => {
     if (!iaPrompt) return;
-    
     setLoading(true);
     
     try {
-      // Use process.env.API_KEY directly as per guidelines.
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-pro-preview",
         contents: `Você é a Escritora Editorial Senior da Holy Spirit Gym. 
         Seu objetivo é criar um artigo de blog de altíssima qualidade que conecte musculação de elite e espiritualidade cristã.
         Tema: ${iaPrompt}. 
-        Diretrizes: Tom inspirador, autoritário, parágrafos curtos, bullet points, e conclusão com CTA motivador.
+        Diretrizes: Tom inspirador, autoritário, parágrafos curtos, bullet points, e conclusão com CTA motivador para falar no WhatsApp.
         Retorne um JSON estrito com: title, excerpt, content, category, slug.`,
         config: {
           responseMimeType: "application/json",
@@ -113,7 +101,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
         }
       });
 
-      // Using .text property to extract content
       const result = JSON.parse(response.text || '{}');
       setArticleData({
         ...articleData,
@@ -132,8 +119,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     }
   };
 
-  const publishArticle = () => {
-    const existing = JSON.parse(localStorage.getItem('hs_blogs') || '[]');
+  const publishArticle = async () => {
     const newPost: BlogPost = {
       id: Date.now().toString(),
       title: articleData.title,
@@ -145,7 +131,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
     };
 
-    localStorage.setItem('hs_blogs', JSON.stringify([newPost, ...existing]));
+    await dbService.saveBlog(newPost);
     setSuccess(true);
     setTimeout(() => {
       setSuccess(false);
@@ -155,7 +141,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col min-h-[85vh]">
-      {/* Menu de Navegação Superior */}
       <div className="flex p-1 bg-zinc-900/40 rounded-2xl border border-white/5 w-fit mb-12">
         <button 
           onClick={() => { setActiveSubTab('ia'); setStep('input'); }}
@@ -296,11 +281,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                     </button>
                   ))}
                 </div>
-                <div className="p-5 bg-blue-600/5 rounded-2xl border border-blue-600/10">
-                  <p className="text-[10px] text-blue-600/80 leading-relaxed font-bold italic">
-                    "A IA irá selecionar os melhores tópicos de saúde e fé baseados nos dias ativos acima."
-                  </p>
-                </div>
               </div>
 
               <div className="space-y-8 text-center lg:text-left">
@@ -314,10 +294,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                   onChange={(e) => setAutoConfig({...autoConfig, time: e.target.value})}
                   className="w-full bg-black border border-white/10 rounded-3xl px-8 py-7 text-4xl font-black text-center text-blue-500 outline-none focus:border-blue-600 transition-all shadow-inner"
                 />
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase text-gray-600 tracking-widest">Próxima Postagem Prevista</p>
-                  <p className="text-sm font-bold text-white uppercase italic">Hoje às {autoConfig.time}</p>
-                </div>
               </div>
             </div>
           </div>
@@ -352,7 +328,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               </div>
 
               <div className="space-y-8">
-                {/* Opção de Imagem */}
                 <div className="bg-zinc-900/20 p-8 rounded-[40px] border border-white/5 space-y-8">
                    <div className="flex items-center justify-between">
                      <div className="flex items-center gap-3">
@@ -413,21 +388,12 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
         )}
       </div>
 
-      {/* Rodapé de Aviso IA Discreto */}
       <footer className="mt-20 pt-10 border-t border-white/5 pb-10 flex flex-col md:flex-row justify-between items-center gap-8">
         <div className="flex items-center gap-4 text-gray-700 opacity-60 hover:opacity-100 transition-opacity">
           <ShieldAlert size={14} />
           <p className="text-[9px] font-black uppercase tracking-[0.2em]">
-            Tecnologia IA: <span className="text-gray-500 font-bold">Conteúdos gerados artificialmente. Revise para manter a precisão doutrinária e técnica.</span>
+            Tecnologia IA: <span className="text-gray-500 font-bold">Conteúdos gerados artificialmente via Gemini 3. Revise sempre.</span>
           </p>
-        </div>
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#cfec0f]/50"></div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-gray-700">Sistema Estável</span>
-          </div>
-          <div className="h-4 w-px bg-white/5"></div>
-          <p className="text-[9px] font-black uppercase tracking-widest text-gray-800">Holy Pilot Editorial v3.0</p>
         </div>
       </footer>
 
