@@ -1,48 +1,46 @@
 
 import React from 'react';
-import { Play } from 'lucide-react';
+import { ArrowDown } from 'lucide-react';
 
 const Hero: React.FC = () => {
   return (
-    <section className="relative pt-32 pb-16 lg:pt-48 lg:pb-32 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex flex-col items-start gap-4 mb-8">
-          <div className="flex gap-2">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="w-2 h-8 bg-[#cfec0f] rounded-full"></div>
-            ))}
-          </div>
-          <span className="text-[#cfec0f] font-semibold tracking-widest uppercase text-sm">Nossos Blogs</span>
-        </div>
+    <section className="relative min-h-[90vh] flex items-center pt-20 overflow-hidden bg-black">
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent z-10"></div>
+        <img
+          src="https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&q=80&w=2070"
+          alt="Treino e Disciplina"
+          className="w-full h-full object-cover opacity-40 grayscale"
+        />
+      </div>
 
-        <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-12 leading-tight">
-          Incendeie sua <br />
-          Jornada Fitness com <br />
-          o Blog da <span className="text-[#cfec0f]">Holy Spirit!</span>
-        </h1>
-
-        <div className="relative rounded-3xl overflow-hidden aspect-video lg:aspect-[21/9] group cursor-pointer shadow-2xl">
-          <img
-            src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=2070"
-            alt="Ambiente da Academia"
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-            <div className="w-20 h-20 bg-[#cfec0f] rounded-full flex items-center justify-center text-black animate-pulse group-hover:scale-110 transition-transform">
-              <Play fill="black" size={32} />
-            </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20">
+        <div className="max-w-3xl">
+          <div className="inline-block bg-[#cfec0f]/10 border border-[#cfec0f]/30 text-[#cfec0f] px-3 py-1 rounded-md text-xs font-bold tracking-widest uppercase mb-6">
+            Corpo, Mente e Espírito
           </div>
-          <div className="absolute bottom-8 left-8 right-8 text-white">
-             <p className="text-xl font-medium max-w-2xl hidden md:block">
-              "Sua fonte de insights sobre fitness, dicas de nutrição e histórias inspiradoras"
-             </p>
+          <h1 className="text-6xl md:text-8xl font-black mb-6 leading-[0.9] tracking-tighter">
+            TREINE O SEU <br />
+            <span className="text-[#cfec0f]">TEMPLO.</span>
+          </h1>
+          <p className="text-gray-400 text-lg md:text-xl mb-10 leading-relaxed max-w-xl">
+            A Holy Spirit une a excelência da musculação com a disciplina da fé. 
+            Transforme seu físico enquanto fortalece seu espírito em um ambiente de honra e propósito.
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <button className="bg-[#cfec0f] text-black font-black px-10 py-4 rounded-xl hover:shadow-[0_0_30px_rgba(207,236,15,0.4)] transition-all">
+              AULA EXPERIMENTAL GRATUITA
+            </button>
+            <button className="border border-white/20 text-white font-bold px-10 py-4 rounded-xl hover:bg-white/5 transition-all">
+              CONHECER O BLOG
+            </button>
           </div>
         </div>
       </div>
       
-      {/* Background decoration */}
-      <div className="absolute top-0 right-0 -mr-24 -mt-24 w-96 h-96 bg-[#cfec0f]/10 rounded-full blur-[100px]"></div>
-      <div className="absolute bottom-0 left-0 -ml-24 -mb-24 w-96 h-96 bg-[#cfec0f]/10 rounded-full blur-[100px]"></div>
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce text-gray-600">
+        <ArrowDown size={24} />
+      </div>
     </section>
   );
 };
