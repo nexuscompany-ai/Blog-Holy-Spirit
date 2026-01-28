@@ -1,67 +1,70 @@
 
 import React from 'react';
-import { Mail, Phone, Instagram, MapPin } from 'lucide-react';
+import { Mail, Phone, Instagram, MapPin, MessageCircle } from 'lucide-react';
 
 const Footer: React.FC = () => {
+  const settings = JSON.parse(localStorage.getItem('hs_settings') || '{"phone": "(11) 99999-9999", "instagram": "@holyspirit.gym", "address": "Av. das Nações, 1000 - SP"}');
+  const waLink = `https://wa.me/${settings.phone.replace(/\D/g, '')}`;
+
   return (
-    <footer className="bg-black pt-20 pb-10 border-t border-white/5">
+    <footer className="bg-black pt-24 pb-12 border-t border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mb-20">
-          <div className="col-span-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 mb-24">
+          <div className="col-span-1 lg:col-span-2">
             <a href="/" className="flex items-center gap-2 mb-8">
-              <div className="w-6 h-6 bg-[#cfec0f] rounded-sm rotate-45"></div>
-              <span className="text-2xl font-black tracking-tighter text-white">
+              <div className="w-8 h-8 bg-[#cfec0f] rounded-sm rotate-45"></div>
+              <span className="text-3xl font-black tracking-tighter text-white uppercase">
                 HOLY<span className="text-[#cfec0f]">SPIRIT</span>
               </span>
             </a>
-            <p className="text-gray-500 max-w-xs leading-relaxed mb-8">
-              Treinando corpos, fortalecendo espíritos. Uma comunidade dedicada à excelência física e espiritual.
+            <p className="text-gray-500 max-w-md leading-relaxed mb-10 text-lg">
+              Corpos treinados, espíritos fortalecidos. Nossa missão é a excelência integral em honra ao Criador.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="p-3 bg-zinc-900 rounded-xl text-gray-400 hover:text-[#cfec0f] transition-all">
-                <Instagram size={20} />
+              <a href="#" className="p-4 bg-zinc-900 rounded-2xl text-gray-400 hover:text-[#cfec0f] transition-all hover:scale-110">
+                <Instagram size={24} />
               </a>
-              <a href="#" className="p-3 bg-zinc-900 rounded-xl text-gray-400 hover:text-[#cfec0f] transition-all">
-                <Mail size={20} />
+              <a href={waLink} className="p-4 bg-zinc-900 rounded-2xl text-gray-400 hover:text-[#cfec0f] transition-all hover:scale-110">
+                <MessageCircle size={24} />
               </a>
             </div>
           </div>
 
           <div className="col-span-1">
-            <h4 className="text-white font-black uppercase tracking-widest text-sm mb-8">Nossa Localização</h4>
-            <div className="space-y-4">
-              <p className="flex items-center gap-3 text-gray-500">
-                <MapPin className="text-[#cfec0f]" size={18} />
-                Av. das Nações, 1000 - São Paulo, SP
+            <h4 className="text-white font-black uppercase tracking-[0.2em] text-[10px] mb-8">O Templo</h4>
+            <div className="space-y-6">
+              <p className="flex items-start gap-4 text-gray-500 text-sm">
+                <MapPin className="text-[#cfec0f] shrink-0" size={18} />
+                {settings.address}
               </p>
-              <p className="flex items-center gap-3 text-gray-500">
+              <p className="flex items-center gap-4 text-gray-500 text-sm font-bold">
                 <Phone className="text-[#cfec0f]" size={18} />
-                (11) 99999-9999
+                {settings.phone}
               </p>
             </div>
           </div>
 
           <div className="col-span-1">
-            <h4 className="text-white font-black uppercase tracking-widest text-sm mb-8">Newsletter do Templo</h4>
-            <p className="text-gray-500 text-sm mb-4">Receba dicas de treino e mensagens semanais de edificação.</p>
-            <div className="relative">
-              <input 
-                type="email" 
-                placeholder="Seu e-mail principal" 
-                className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-[#cfec0f] outline-none transition-all"
-              />
-              <button className="absolute right-2 top-2 bg-[#cfec0f] text-black text-[10px] font-black px-4 py-1.5 rounded-lg">
-                ASSINAR
-              </button>
-            </div>
+            <h4 className="text-white font-black uppercase tracking-[0.2em] text-[10px] mb-8">Atendimento</h4>
+            <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+              Dúvidas sobre o blog, eventos ou visitas ao templo? 
+            </p>
+            <a 
+              href={waLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-[#cfec0f] text-black font-black py-4 px-8 rounded-2xl text-[10px] uppercase tracking-widest inline-block hover:shadow-[0_10px_30px_rgba(207,236,15,0.2)] transition-all"
+            >
+              CHAMAR NO WHATSAPP
+            </a>
           </div>
         </div>
 
-        <div className="pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] text-gray-700 font-bold uppercase tracking-widest">
+        <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 text-[9px] text-gray-700 font-black uppercase tracking-[0.3em]">
           <p>© 2024 HOLY SPIRIT ACADEMIA. TREINE PARA GLÓRIA DE DEUS.</p>
-          <div className="flex gap-8">
-            <a href="#" className="hover:text-white">Privacidade</a>
-            <a href="#" className="hover:text-white">Termos</a>
+          <div className="flex gap-12">
+            <a href="#" className="hover:text-white transition-colors">Privacidade</a>
+            <a href="#" className="hover:text-white transition-colors">Código de Honra</a>
           </div>
         </div>
       </div>

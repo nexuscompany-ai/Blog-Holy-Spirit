@@ -84,9 +84,11 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
 
   const generateWithIA = async () => {
     if (!iaPrompt) return;
+    
     setLoading(true);
     
     try {
+      // Use process.env.API_KEY directly as per guidelines.
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-pro-preview",
@@ -111,6 +113,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
         }
       });
 
+      // Using .text property to extract content
       const result = JSON.parse(response.text || '{}');
       setArticleData({
         ...articleData,
@@ -123,7 +126,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       setStep('editing');
     } catch (error: any) {
       console.error(error);
-      alert("Houve um pequeno desvio na conexão com a Escritora IA. Tente novamente.");
+      alert("Houve um pequeno desvio na conexão com a Escritora IA. Verifique se a sua conexão está ativa.");
     } finally {
       setLoading(false);
     }

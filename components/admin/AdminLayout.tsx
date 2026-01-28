@@ -1,23 +1,26 @@
 
 import React, { useState } from 'react';
-import { LayoutDashboard, FileText, Calendar, List, LogOut, Sparkles, Wifi, WifiOff, PenTool } from 'lucide-react';
+import { LayoutDashboard, FileText, Calendar, List, LogOut, Sparkles, Settings as SettingsIcon, PenTool } from 'lucide-react';
 import DashboardHome from './DashboardHome';
 import CreateBlog from './CreateBlog';
 import MyBlogs from './MyBlogs';
+import ManageEvents from './ManageEvents';
+import SettingsPage from './SettingsPage';
 
 interface AdminLayoutProps {
   exitAdmin: () => void;
 }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'create' | 'list' | 'event'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'create' | 'list' | 'event' | 'settings'>('dashboard');
   const [isAiConnected] = useState(true);
 
   const menuItems = [
     { id: 'dashboard', label: 'Início', icon: <LayoutDashboard size={20} /> },
-    { id: 'create', label: 'Criar Blog', icon: <PenTool size={20} /> },
+    { id: 'create', label: 'Escritora IA', icon: <Sparkles size={20} /> },
     { id: 'list', label: 'Meus Blogs', icon: <List size={20} /> },
-    { id: 'event', label: 'Criar Evento', icon: <Calendar size={20} /> },
+    { id: 'event', label: 'Eventos', icon: <Calendar size={20} /> },
+    { id: 'settings', label: 'Configurações', icon: <SettingsIcon size={20} /> },
   ];
 
   return (
@@ -52,20 +55,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
 
         <div className="mb-6 p-4 bg-zinc-900/50 rounded-2xl border border-white/5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-black uppercase text-gray-500">Conexão com Inteligência</span>
-            {isAiConnected ? (
-              <div className="flex items-center gap-1">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> 
-                <span className="text-[8px] text-green-500 font-bold uppercase tracking-widest">Ativa</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1">
-                <span className="w-2 h-2 bg-red-500 rounded-full"></span> 
-                <span className="text-[8px] text-red-500 font-bold uppercase tracking-widest">Offline</span>
-              </div>
-            )}
+            <span className="text-[10px] font-black uppercase text-gray-500">Escritora Piloto</span>
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> 
+              <span className="text-[8px] text-green-500 font-bold uppercase tracking-widest">Pronta</span>
+            </div>
           </div>
-          <p className="text-[10px] text-gray-400">Motor Holy IA operando normalmente.</p>
+          <p className="text-[10px] text-gray-400">Motor Holy IA em alta performance.</p>
         </div>
 
         <button 
@@ -85,7 +81,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
               {menuItems.find(i => i.id === activeTab)?.label}
             </h1>
             <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-2">
-              Templo Holy Spirit • Painel de Gestão v2.1
+              Templo Holy Spirit • Gestão Editorial
             </p>
           </div>
           
@@ -104,13 +100,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
           {activeTab === 'dashboard' && <DashboardHome />}
           {activeTab === 'create' && <CreateBlog onSuccess={() => setActiveTab('list')} />}
           {activeTab === 'list' && <MyBlogs />}
-          {activeTab === 'event' && (
-            <div className="p-20 text-center bg-zinc-900/30 rounded-[40px] border border-dashed border-white/10">
-              <Calendar size={64} className="mx-auto mb-6 text-gray-800" />
-              <h3 className="text-xl font-bold mb-2">Eventos do Templo</h3>
-              <p className="text-gray-600 max-w-sm mx-auto">Em breve: Agende aulas especiais, cultos e workshops direto no site.</p>
-            </div>
-          )}
+          {activeTab === 'event' && <ManageEvents />}
+          {activeTab === 'settings' && <SettingsPage />}
         </div>
       </main>
     </div>
