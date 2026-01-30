@@ -9,22 +9,11 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onAdminClick }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [clickCount, setClickCount] = useState(0);
   const [settings, setSettings] = useState<HolySettings | null>(null);
 
   useEffect(() => {
     dbService.getSettings().then(setSettings);
   }, []);
-
-  // Gatilho secreto para admin: 5 cliques rápidos no logo
-  useEffect(() => {
-    if (clickCount >= 5) {
-      onAdminClick();
-      setClickCount(0);
-    }
-    const timer = setTimeout(() => setClickCount(0), 2000);
-    return () => clearTimeout(timer);
-  }, [clickCount]);
 
   const waLink = settings ? `https://wa.me/${settings.phone.replace(/\D/g, '')}` : '#';
 
@@ -39,15 +28,12 @@ const Header: React.FC<HeaderProps> = ({ onAdminClick }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center">
-            <button 
-              onClick={() => setClickCount(prev => prev + 1)}
-              className="flex items-center gap-2 group outline-none"
-            >
+            <a href="/" className="flex items-center gap-2 group outline-none">
               <div className="w-6 h-6 bg-neon rounded-sm rotate-45 group-hover:rotate-0 transition-all duration-500 shadow-[0_0_15px_rgba(207,236,15,0.5)]"></div>
               <span className="text-xl font-black tracking-tightest text-white uppercase italic">
                 HOLY<span className="text-neon">SPIRIT</span>
               </span>
-            </button>
+            </a>
           </div>
 
           <div className="hidden md:block">
