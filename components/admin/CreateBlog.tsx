@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Send, Sparkles, Loader2, CheckCircle2, 
@@ -77,15 +76,29 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     setLoading(true);
     
     try {
+      // Re-initialize GoogleGenAI right before the call to ensure the latest environment settings are used.
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-pro-preview",
-        contents: `Você é a Escritora Editorial Senior da Holy Spirit Gym. 
-        Seu objetivo é criar um artigo de blog de altíssima qualidade que conecte musculação de elite e espiritualidade cristã.
-        Tema: ${iaPrompt}. 
-        Diretrizes: Tom inspirador, autoritário, parágrafos curtos, bullet points, e conclusão com CTA motivador para falar no WhatsApp.
-        Retorne um JSON estrito com: title, excerpt, content, category, slug.`,
+        contents: `Escreva um artigo completo sobre: ${iaPrompt}`,
         config: {
+          // Utilizing systemInstruction to define the persona and constraints more effectively.
+          systemInstruction: `Você é a Escritora Editorial Senior da Holy Spirit Gym, especialista em marketing de conteúdo, SEO avançado e princípios cristãos aplicados à musculação.
+          Seu objetivo é gerar artigos de alto desempenho que atraiam tráfego orgânico, eduquem e convertam.
+
+          ESTRUTURA OBRIGATÓRIA:
+          - Título otimizado para SEO (H1)
+          - Introdução envolvente conectando musculação e espírito
+          - Subtítulos bem definidos (H2 e H3)
+          - Conteúdo aprofundado com exemplos práticos e bullet points
+          - Conclusão estratégica com CTA para WhatsApp
+          
+          REGRAS:
+          - Tom profissional, motivador e inspirador.
+          - Use palavras-chave naturais.
+          - Evite keyword stuffing.
+          
+          Retorne um JSON estrito com: title, excerpt, content, category, slug.`,
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -101,6 +114,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
         }
       });
 
+      // Directly accessing the response.text property as per GenerateContentResponse definition.
       const result = JSON.parse(response.text || '{}');
       setArticleData({
         ...articleData,

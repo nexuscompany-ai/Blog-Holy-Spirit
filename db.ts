@@ -1,5 +1,6 @@
 
-import { BlogPost } from './components/BlogSection';
+// Importamos apenas as interfaces, nunca a lógica de servidor
+import type { BlogPost } from './components/BlogSection';
 
 export interface HolySettings {
   gymName: string;
@@ -21,71 +22,61 @@ export interface HolyEvent {
   image?: string;
 }
 
-const KEYS = {
-  SETTINGS: 'hs_settings',
-  BLOGS: 'hs_blogs',
-  EVENTS: 'hs_events',
-  AUTO_CONFIG: 'hs_auto_config'
-};
-
-const DEFAULT_SETTINGS: HolySettings = {
-  gymName: 'Holy Spirit Academia',
-  phone: '5511999999999',
-  instagram: '@holyspirit.gym',
-  address: 'Av. das Nações, 1000 - São Paulo, SP',
-  website: 'www.holyspiritgym.com.br'
-};
-
 export const dbService = {
-  // Configurações
   async getSettings(): Promise<HolySettings> {
-    const saved = localStorage.getItem(KEYS.SETTINGS);
-    return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+    const saved = localStorage.getItem('hs_settings');
+    return saved ? JSON.parse(saved) : {
+      gymName: 'Holy Spirit Academia',
+      phone: '5511999999999',
+      instagram: '@holyspirit.gym',
+      address: 'Av. das Nações, 1000 - São Paulo, SP',
+      website: 'www.holyspiritgym.com.br'
+    };
   },
 
   async saveSettings(settings: HolySettings): Promise<void> {
-    localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+    localStorage.setItem('hs_settings', JSON.stringify(settings));
   },
 
-  // Blogs
   async getBlogs(): Promise<BlogPost[]> {
-    const saved = localStorage.getItem(KEYS.BLOGS);
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const response = await fetch('/api/posts');
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (error) {
+      console.error('API Error:', error);
+      return [];
+    }
   },
 
-  async saveBlog(post: BlogPost): Promise<void> {
-    const blogs = await this.getBlogs();
-    const updated = [post, ...blogs];
-    localStorage.setItem(KEYS.BLOGS, JSON.stringify(updated));
+  async saveBlog(post: any): Promise<void> {
+    const response = await fetch('/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(post),
+    });
+    if (!response.ok) throw new Error('Erro ao salvar post via API');
   },
 
-  async deleteBlog(id: string): Promise<void> {
-    const blogs = await this.getBlogs();
-    const updated = blogs.filter(b => b.id !== id);
-    localStorage.setItem(KEYS.BLOGS, JSON.stringify(updated));
-  },
-
-  // Eventos
   async getEvents(): Promise<HolyEvent[]> {
-    const saved = localStorage.getItem(KEYS.EVENTS);
+    const saved = localStorage.getItem('hs_events');
     return saved ? JSON.parse(saved) : [];
   },
 
   async saveEvent(event: HolyEvent): Promise<void> {
     const events = await this.getEvents();
-    const updated = [event, ...events];
-    localStorage.setItem(KEYS.EVENTS, JSON.stringify(updated));
+    localStorage.setItem('hs_events', JSON.stringify([event, ...events]));
   },
 
   async deleteEvent(id: string): Promise<void> {
     const events = await this.getEvents();
-    const updated = events.filter(e => e.id !== id);
-    localStorage.setItem(KEYS.EVENTS, JSON.stringify(updated));
+    const filtered = events.filter(e => e.id !== id);
+    localStorage.setItem('hs_events', JSON.stringify(filtered));
   },
 
   async updateEvent(id: string, updates: Partial<HolyEvent>): Promise<void> {
     const events = await this.getEvents();
     const updated = events.map(e => e.id === id ? { ...e, ...updates } : e);
-    localStorage.setItem(KEYS.EVENTS, JSON.stringify(updated));
+    localStorage.setItem('hs_events', JSON.stringify(updated));
   }
 };
