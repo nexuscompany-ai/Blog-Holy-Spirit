@@ -1,97 +1,86 @@
 
-import React, { useEffect, useState } from 'react';
-import { FileCheck, Edit3, Eye, Clock, Calendar as CalendarIcon, Database, AlertCircle, RefreshCw } from 'lucide-react';
+import React from 'react';
+import { 
+  Users, TrendingUp, BookOpen, Calendar, 
+  ArrowUpRight, Clock, Star, Zap
+} from 'lucide-react';
 
 const DashboardHome: React.FC = () => {
-  const [dbStatus, setDbStatus] = useState<'loading' | 'online' | 'offline'>('loading');
-
-  const checkHealth = async () => {
-    setDbStatus('loading');
-    try {
-      const res = await fetch('/api/health');
-      if (res.ok) setDbStatus('online');
-      else setDbStatus('offline');
-    } catch {
-      setDbStatus('offline');
-    }
-  };
-
-  useEffect(() => {
-    checkHealth();
-  }, []);
-
   const metrics = [
-    { label: 'Publicados', value: '12', icon: <FileCheck className="text-green-500" /> },
-    { label: 'Rascunhos', value: '04', icon: <Edit3 className="text-yellow-500" /> },
-    { label: 'Visitas Totais', value: '1.240', icon: <Eye className="text-blue-500" /> },
-    { label: 'Agendados', value: '08', icon: <Clock className="text-[#cfec0f]" /> },
+    { label: 'Alcance do Templo', value: '14.2k', change: '+12%', icon: <Users className="text-blue-500" /> },
+    { label: 'Tempo de Leitura', value: '4:20m', change: '+5%', icon: <Clock className="text-neon" /> },
+    { label: 'Engajamento IA', value: '88%', change: '+18%', icon: <Zap className="text-orange-500" /> },
+    { label: 'Conversão', value: '3.2%', change: '+2%', icon: <TrendingUp className="text-green-500" /> },
+  ];
+
+  const recentActivity = [
+    { title: 'A Jornada do Jejum Intermitente', type: 'IA Blog', time: '2 horas atrás', status: 'Publicado' },
+    { title: 'Workshop de Agachamento Holy', type: 'Evento', time: '5 horas atrás', status: 'Ativo' },
+    { title: 'Nutrição Baseada em Princípios', type: 'Manual', time: 'Ontem', status: 'Agendado' },
   ];
 
   return (
-    <div className="space-y-8">
-      {/* Banner de Status do Supabase */}
-      <div className={`p-6 rounded-[32px] border flex items-center justify-between transition-all duration-500 ${
-        dbStatus === 'online' ? 'bg-green-500/5 border-green-500/20 text-green-500' : 
-        dbStatus === 'offline' ? 'bg-red-500/5 border-red-500/20 text-red-500' : 
-        'bg-zinc-900 border-white/5 text-gray-500'
-      }`}>
-        <div className="flex items-center gap-5">
-          <div className={`p-3 rounded-2xl ${dbStatus === 'online' ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-            {dbStatus === 'online' ? <Database size={24} /> : <AlertCircle size={24} />}
-          </div>
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] mb-1">
-              Conexão Supabase: {dbStatus === 'loading' ? 'Sincronizando...' : dbStatus.toUpperCase()}
-            </h3>
-            <p className="text-[10px] font-bold opacity-60 uppercase">
-              Projeto ID: xkapuhuuqqjmcxxrnpcf
-            </p>
-          </div>
-        </div>
-        <button 
-          onClick={checkHealth}
-          className="p-3 hover:bg-white/5 rounded-full transition-all"
-        >
-          <RefreshCw size={18} className={dbStatus === 'loading' ? 'animate-spin' : ''} />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div className="space-y-10 animate-in fade-in duration-700">
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {metrics.map((m, i) => (
           <div key={i} className="bg-zinc-900/30 p-8 rounded-[32px] border border-white/5 hover:border-white/10 transition-all group">
             <div className="flex justify-between items-start mb-6">
-              <span className="text-4xl font-black italic tracking-tighter">{m.value}</span>
-              <div className="p-3 bg-black rounded-xl group-hover:scale-110 transition-transform">{m.icon}</div>
+              <div className="p-3 bg-black rounded-xl group-hover:scale-110 transition-transform border border-white/5">{m.icon}</div>
+              <span className="text-[10px] font-black text-green-500 bg-green-500/10 px-2 py-1 rounded-lg">{m.change}</span>
             </div>
+            <p className="text-3xl font-black italic tracking-tighter mb-1">{m.value}</p>
             <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{m.label}</p>
           </div>
         ))}
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
+        {/* Recent Activity */}
         <div className="lg:col-span-2 bg-zinc-900/20 rounded-[40px] border border-white/5 p-10">
-          <h2 className="text-xl font-black uppercase italic flex items-center gap-3 mb-8">
-            <CalendarIcon size={20} className="text-[#cfec0f]" /> Calendário Editorial
-          </h2>
+          <div className="flex justify-between items-center mb-10">
+            <h2 className="text-xl font-black uppercase italic flex items-center gap-3">
+              <Star size={20} className="text-neon" /> Atividade Recente
+            </h2>
+            <button className="text-[10px] font-black uppercase text-gray-500 hover:text-white transition-colors">Ver Tudo</button>
+          </div>
+          
           <div className="space-y-4">
-             <div className="p-6 bg-black/40 rounded-2xl border border-white/5 flex items-center justify-between opacity-50">
-                <span className="text-xs font-bold uppercase text-gray-500">Aguardando dados do banco...</span>
-             </div>
+            {recentActivity.map((act, i) => (
+              <div key={i} className="flex items-center justify-between p-6 bg-black/40 rounded-2xl border border-white/5 hover:border-neon/20 transition-all group">
+                <div className="flex items-center gap-6">
+                  <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-gray-400 group-hover:text-neon transition-colors">
+                    {act.type === 'Evento' ? <Calendar size={20} /> : <BookOpen size={20} />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">{act.title}</p>
+                    <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest">{act.type} • {act.time}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className={`text-[8px] font-black uppercase px-3 py-1 rounded-full ${act.status === 'Publicado' ? 'bg-green-500/10 text-green-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                    {act.status}
+                  </span>
+                  <ArrowUpRight size={14} className="text-zinc-700 group-hover:text-white transition-colors" />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-[#cfec0f]/10 to-transparent rounded-[40px] border border-[#cfec0f]/10 p-10 flex flex-col justify-center">
-          <h3 className="text-[#cfec0f] font-black text-2xl mb-4 italic uppercase leading-none">Status Final</h3>
-          <p className="text-gray-400 text-sm leading-relaxed mb-8 font-medium">
-            {dbStatus === 'online' 
-              ? 'Tudo pronto. O Templo está conectado e os dados serão salvos no Supabase.' 
-              : 'Verifique se você configurou a DATABASE_URL no seu ambiente de produção.'}
-          </p>
-          <button 
-            disabled={dbStatus !== 'online'}
-            className="bg-[#cfec0f] text-black font-black py-5 rounded-2xl text-[10px] uppercase tracking-widest hover:scale-105 transition-all disabled:opacity-30 disabled:grayscale"
-          >
-            INICIAR PRODUÇÃO IA
+        {/* Quick Tips */}
+        <div className="bg-gradient-to-br from-neon/10 via-transparent to-transparent rounded-[40px] border border-neon/10 p-10 flex flex-col justify-between">
+          <div>
+            <div className="w-12 h-12 bg-neon rounded-2xl flex items-center justify-center text-black mb-8 shadow-[0_0_20px_rgba(207,236,15,0.3)]">
+              <Zap size={24} />
+            </div>
+            <h3 className="text-2xl font-black italic uppercase mb-4 leading-tight">Dica do <br /> Estrategista</h3>
+            <p className="text-gray-400 text-sm leading-relaxed mb-8">
+              Artigos criados via IA com o tom "Inspirador" tendem a ter 24% mais compartilhamentos na Holy Spirit.
+            </p>
+          </div>
+          <button className="w-full bg-white/5 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">
+            Ver Insights de SEO
           </button>
         </div>
       </div>

@@ -7,8 +7,10 @@ export interface Post {
   content: string;
   category: string;
   image: string;
-  date: string;
-  status: 'published' | 'draft';
+  createdAt: string;
+  published: boolean;
+  publishedAt?: string;
+  source: 'manual' | 'ai';
 }
 
 export interface CreatePostDTO {
@@ -17,4 +19,7 @@ export interface CreatePostDTO {
   content: string;
   category: string;
   image: string;
+  source: 'manual' | 'ai';
+  publishedAt?: string;
+  published: boolean;
 }

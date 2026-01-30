@@ -1,29 +1,53 @@
+
 import { PrismaClient } from '@prisma/client';
 
-// O PrismaClient não deve ser instanciado no navegador.
-// Esta verificação evita que o frontend quebre ao importar arquivos que usam o prisma.
-const isServer = typeof window === 'undefined';
+/**
+ * SCHEMA REFERENCE FOR SUPABASE (POSTGRESQL):
+ * 
+ * model Post {
+ *   id          String    @id @default(uuid())
+ *   title       String
+ *   slug        String    @unique
+ *   excerpt     String
+ *   content     String
+ *   category    String
+ *   image       String
+ *   createdAt   DateTime  @default(now())
+ *   published   Boolean   @default(true)
+ *   publishedAt DateTime?
+ *   source      String    // "manual" | "ai"
+ * }
+ * 
+ * model Event {
+ *   id          String    @id @default(uuid())
+ *   title       String
+ *   date        String
+ *   time        String
+ *   location    String
+ *   description String
+ *   category    String
+ *   status      String    // "active" | "inactive"
+ *   image       String?
+ * }
+ * 
+ * model Settings {
+ *   id        String @id @default(uuid())
+ *   gymName   String
+ *   phone     String
+ *   instagram String
+ *   address   String
+ *   website   String
+ * }
+ */
 
-declare global {
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
-}
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
 
-let prismaInstance: PrismaClient;
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
 
-if (isServer) {
-  if (process.env.NODE_ENV === 'production') {
-    prismaInstance = new PrismaClient();
-  } else {
-    // Accessing the global object using globalThis instead of the Node-specific global to avoid compilation errors.
-    if (!globalThis.prisma) {
-      globalThis.prisma = new PrismaClient();
-    }
-    prismaInstance = globalThis.prisma;
-  }
-} else {
-  // Mock ou erro controlado para o frontend
-  prismaInstance = {} as PrismaClient;
-}
-
-export const prisma = prismaInstance;
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
