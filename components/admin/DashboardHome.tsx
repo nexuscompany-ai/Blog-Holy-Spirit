@@ -1,11 +1,18 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Users, TrendingUp, BookOpen, Calendar, 
-  ArrowUpRight, Clock, Star, Zap
+  ArrowUpRight, Clock, Star, Zap, Bot
 } from 'lucide-react';
+import { dbService, AutomationSettings } from '../../db';
 
 const DashboardHome: React.FC = () => {
+  const [autoSettings, setAutoSettings] = useState<AutomationSettings | null>(null);
+
+  useEffect(() => {
+    dbService.getAutomationSettings().then(setAutoSettings);
+  }, []);
+
   const metrics = [
     { label: 'Alcance do Templo', value: '14.2k', change: '+12%', icon: <Users className="text-blue-500" /> },
     { label: 'Tempo de Leitura', value: '4:20m', change: '+5%', icon: <Clock className="text-neon" /> },
@@ -21,6 +28,28 @@ const DashboardHome: React.FC = () => {
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
+      {/* Auto-Pilot Status Header */}
+      <div className="grid lg:grid-cols-4 gap-6">
+        <div className={`lg:col-span-4 p-8 rounded-[32px] border transition-all flex flex-col md:flex-row items-center justify-between gap-6 ${
+          autoSettings?.enabled ? 'bg-neon/5 border-neon/20' : 'bg-zinc-900/20 border-white/5'
+        }`}>
+          <div className="flex items-center gap-6">
+             <div className={`p-4 rounded-2xl ${autoSettings?.enabled ? 'bg-neon text-black' : 'bg-zinc-800 text-zinc-500'}`}>
+               <Bot size={24} />
+             </div>
+             <div>
+               <h3 className="text-sm font-black uppercase tracking-widest">Status do Auto-Pilot</h3>
+               <p className={`text-[10px] font-bold uppercase tracking-widest ${autoSettings?.enabled ? 'text-neon' : 'text-zinc-500'}`}>
+                 {autoSettings?.enabled ? `Ativado: Geração a cada ${autoSettings.frequency_days} dias` : 'Desativado: Aguardando configuração'}
+               </p>
+             </div>
+          </div>
+          <div className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">
+            Próxima geração estimada: {autoSettings?.enabled ? 'Em breve (via Cron Server)' : 'N/A'}
+          </div>
+        </div>
+      </div>
+
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {metrics.map((m, i) => (

@@ -2,13 +2,14 @@
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, List, Calendar, Sparkles, 
-  Settings as SettingsIcon, LogOut
+  Settings as SettingsIcon, LogOut, Bot
 } from 'lucide-react';
 import DashboardHome from './DashboardHome';
 import CreateBlog from './CreateBlog';
 import MyBlogs from './MyBlogs';
 import ManageEvents from './ManageEvents';
 import SettingsPage from './SettingsPage';
+import ManageAutomation from './ManageAutomation';
 import { dbService } from '../../db';
 
 interface AdminLayoutProps {
@@ -16,11 +17,12 @@ interface AdminLayoutProps {
 }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'create' | 'list' | 'event' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'create' | 'list' | 'event' | 'settings' | 'automation'>('dashboard');
 
   const menuItems = [
     { id: 'dashboard', label: 'Início', icon: <LayoutDashboard size={20} /> },
     { id: 'create', label: 'Escritora IA', icon: <Sparkles size={20} /> },
+    { id: 'automation', label: 'Auto-Pilot', icon: <Bot size={20} /> },
     { id: 'list', label: 'Meus Blogs', icon: <List size={20} /> },
     { id: 'event', label: 'Eventos', icon: <Calendar size={20} /> },
     { id: 'settings', label: 'Configurações', icon: <SettingsIcon size={20} /> },
@@ -48,7 +50,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
               onClick={() => setActiveTab(item.id as any)}
               className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-300 group ${
                 activeTab === item.id 
-                  ? 'bg-[#cfec0f] text-black' 
+                  ? 'bg-[#cfec0f] text-black shadow-lg shadow-[#cfec0f]/10' 
                   : 'text-gray-500 hover:bg-white/5 hover:text-white'
               }`}
             >
@@ -82,6 +84,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
           {activeTab === 'dashboard' && <DashboardHome />}
           {activeTab === 'create' && <CreateBlog onSuccess={() => setActiveTab('list')} />}
+          {activeTab === 'automation' && <ManageAutomation />}
           {activeTab === 'list' && <MyBlogs />}
           {activeTab === 'event' && <ManageEvents />}
           {activeTab === 'settings' && <SettingsPage />}
