@@ -1,44 +1,56 @@
 
 import React from 'react';
-import { ShieldCheck, Heart, Users } from 'lucide-react';
+import { Dumbbell, Users, HeartPulse, Target } from 'lucide-react';
 
 const WhyUs: React.FC = () => {
-  const pillars = [
+  const benefits = [
     {
-      icon: <ShieldCheck className="text-neon" size={32} />,
-      title: 'Ambiente de Honra',
-      desc: 'Um espaço livre de vulgaridade, focado no respeito mútuo e na superação pessoal sob princípios cristãos.'
+      icon: <Dumbbell size={28} className="text-neon" />,
+      title: 'Treino de Elite',
+      desc: 'Equipamentos de última geração e metodologia focada em resultados reais e duradouros.',
+      size: 'lg'
     },
     {
-      icon: <Heart className="text-neon" size={32} />,
+      icon: <Users size={28} className="text-neon" />,
+      title: 'Comunidade',
+      desc: 'Um ambiente de respeito e mútua evolução. Aqui, cada aluno é parte do Templo.',
+      size: 'sm'
+    },
+    {
+      icon: <HeartPulse size={28} className="text-neon" />,
       title: 'Saúde Integral',
-      desc: 'Entendemos que o cuidado com o corpo é um ato de adoração. Oferecemos suporte para longevidade e vigor.'
+      desc: 'Cuidado com o corpo, mente e espírito através de orientações técnicas e motivacionais.',
+      size: 'sm'
     },
     {
-      icon: <Users className="text-neon" size={32} />,
-      title: 'Comunidade Forte',
-      desc: 'Muito mais que uma academia, somos uma família unida pelo propósito de ser a melhor versão de nós mesmos.'
+      icon: <Target size={28} className="text-neon" />,
+      title: 'Foco no Aluno',
+      desc: 'Acompanhamento dedicado para garantir que você alcance sua melhor versão em honra ao Criador.',
+      size: 'lg'
     }
   ];
 
   return (
-    <section className="py-32 bg-black relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-24">
-          <h2 className="text-5xl md:text-7xl font-black mb-6 italic uppercase leading-none tracking-tightest">
-            NOSSA <span className="text-neon neon-glow">MISSÃO</span>
+    <section id="benefits" className="py-24 bg-black relative">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        <div className="mb-16">
+          <p className="text-neon text-[11px] font-black uppercase tracking-[0.5em] mb-4">Nossos Pilares</p>
+          <h2 className="text-5xl md:text-7xl font-black uppercase italic italic leading-none tracking-tighter text-white">
+            A ESSÊNCIA DA <br /><span className="text-neon">HOLY SPIRIT</span>
           </h2>
-          <div className="h-1 w-24 bg-neon shadow-[0_0_15px_rgba(207,236,15,0.5)]"></div>
         </div>
         
-        <div className="grid md:grid-cols-3 gap-8">
-          {pillars.map((p, i) => (
-            <div key={i} className="group glass-card p-10 rounded-[40px] hover:border-neon/30 transition-all duration-500">
-              <div className="mb-8 inline-block p-5 bg-black rounded-2xl group-hover:scale-110 transition-transform shadow-inner">
-                {p.icon}
+        <div className="grid md:grid-cols-6 gap-4">
+          {benefits.map((b, i) => (
+            <div 
+              key={i} 
+              className={`glass-card p-10 rounded-[32px] group relative overflow-hidden ${b.size === 'lg' ? 'md:col-span-3' : 'md:col-span-2'}`}
+            >
+              <div className="mb-6 inline-block p-3 bg-black border border-white/5 rounded-2xl">
+                {b.icon}
               </div>
-              <h3 className="text-2xl font-black mb-4 uppercase italic tracking-tight">{p.title}</h3>
-              <p className="text-zinc-500 leading-relaxed font-medium">{p.desc}</p>
+              <h3 className="text-2xl font-black mb-3 uppercase italic tracking-tight text-white">{b.title}</h3>
+              <p className="text-zinc-500 leading-relaxed font-medium text-sm">{b.desc}</p>
             </div>
           ))}
         </div>

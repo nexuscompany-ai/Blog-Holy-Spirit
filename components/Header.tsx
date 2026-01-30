@@ -1,86 +1,110 @@
 
 import React, { useState, useEffect } from 'react';
-import { Menu, X, MessageCircle } from 'lucide-react';
+import { Menu, X, Shield } from 'lucide-react';
 import { dbService, HolySettings } from '../db';
 
-interface HeaderProps {
-  onAdminClick: () => void;
-}
-
-const Header: React.FC<HeaderProps> = ({ onAdminClick }) => {
+const Header: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [settings, setSettings] = useState<HolySettings | null>(null);
 
   useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
     dbService.getSettings().then(setSettings);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const waLink = settings ? `https://wa.me/${settings.phone.replace(/\D/g, '')}` : '#';
-
+  // Links atualizados conforme solicitação
   const navLinks = [
-    { name: 'Início', href: '#' },
-    { name: 'Blog do Templo', href: '#blog' },
+    { name: 'Blog', href: '#blog' },
     { name: 'Eventos', href: '#blog' },
   ];
 
+  const whatsappNumber = settings?.phone?.replace(/\D/g, '') || '5511999999999';
+  const waLink = `https://wa.me/${whatsappNumber}`;
+
   return (
-    <nav className="fixed w-full z-50 glass-nav">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          <div className="flex items-center">
-            <a href="/" className="flex items-center gap-2 group outline-none">
-              <div className="w-6 h-6 bg-neon rounded-sm rotate-45 group-hover:rotate-0 transition-all duration-500 shadow-[0_0_15px_rgba(207,236,15,0.5)]"></div>
-              <span className="text-xl font-black tracking-tightest text-white uppercase italic">
-                HOLY<span className="text-neon">SPIRIT</span>
-              </span>
+    <nav className={`fixed w-full z-50 transition-all duration-500 ${scrolled ? 'py-4 bg-black/95 backdrop-blur-xl border-b border-white/5' : 'py-8 bg-transparent'}`}>
+      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        <div className="flex items-center justify-between">
+          <a href="/" className="flex items-center gap-3 group">
+            <div className="w-8 h-8 bg-neon rounded-lg rotate-12 group-hover:rotate-0 transition-transform duration-500 flex items-center justify-center shadow-[0_0_20px_rgba(207,236,15,0.3)]">
+              <Shield size={18} className="text-black fill-black" />
+            </div>
+            <span className="text-2xl font-black tracking-tighter text-white uppercase italic">
+              HOLY<span className="text-neon">SPIRIT</span>
+            </span>
+          </a>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-10">
+            {navLinks.map((link) => (
+              <a
+                key={link.name}
+                href={link.href}
+                className="text-zinc-400 hover:text-neon text-[11px] font-bold uppercase tracking-[0.2em] transition-colors"
+              >
+                {link.name}
+              </a>
+            ))}
+            <a 
+              href={waLink}
+              target="_blank"
+              className="px-8 py-3 bg-neon text-black rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-neon/20"
+            >
+              Matricule-se
             </a>
           </div>
 
-          <div className="hidden md:block">
-            <div className="flex items-center space-x-10">
-              {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  className="text-zinc-500 hover:text-neon text-[10px] font-black uppercase tracking-[0.2em] transition-all"
-                >
-                  {link.name}
-                </a>
-              ))}
-              <a 
-                href={waLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-holy px-8 py-3 rounded-xl text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg"
-              >
-                <MessageCircle size={14} /> WHATSAPP
-              </a>
-            </div>
-          </div>
-
+          {/* Mobile Hamburguer Button */}
           <div className="md:hidden">
-            <button onClick={() => setIsOpen(!isOpen)} className="text-neon">
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
+            <button 
+              onClick={() => setIsOpen(!isOpen)} 
+              className="text-white p-2 hover:text-neon transition-colors"
+              aria-label="Menu"
+            >
+              {isOpen ? <X size={32} /> : <Menu size={32} />}
             </button>
           </div>
         </div>
       </div>
 
-      {isOpen && (
-        <div className="md:hidden bg-black/95 backdrop-blur-2xl border-b border-white/5 p-8 space-y-6">
-          {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              className="text-white block text-2xl font-black uppercase italic tracking-tighter"
+      {/* Mobile Menu Overlay */}
+      <div className={`fixed inset-0 z-40 bg-black transition-all duration-500 md:hidden ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'}`}>
+        <div className="flex flex-col items-center justify-center h-full space-y-10 px-6">
+          <a 
+            href="#blog" 
+            className="text-4xl font-black uppercase italic tracking-tighter text-white hover:text-neon"
+            onClick={() => setIsOpen(false)}
+          >
+            Blog
+          </a>
+          <a 
+            href="#blog" 
+            className="text-4xl font-black uppercase italic tracking-tighter text-white hover:text-neon"
+            onClick={() => setIsOpen(false)}
+          >
+            Eventos
+          </a>
+          <div className="w-full pt-10">
+            <a 
+              href={waLink} 
+              className="w-full py-6 bg-neon text-black flex items-center justify-center rounded-2xl text-sm font-black uppercase tracking-widest shadow-2xl"
               onClick={() => setIsOpen(false)}
             >
-              {link.name}
+              Matricule-se Agora
             </a>
-          ))}
-          <a href={waLink} className="text-neon font-black uppercase text-sm block pt-4">WhatsApp</a>
+          </div>
+          
+          <button 
+            onClick={() => setIsOpen(false)}
+            className="absolute top-8 right-8 text-zinc-500 hover:text-white"
+          >
+            <X size={40} />
+          </button>
         </div>
-      )}
+      </div>
     </nav>
   );
 };

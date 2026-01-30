@@ -5,59 +5,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Holy Spirit Gym | Treine o Templo</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        neon: '#cfec0f',
-                        black: {
-                            DEFAULT: '#0a0a0a',
-                            pure: '#000000',
-                            soft: '#050505',
-                            zinc: '#121212',
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    letterSpacing: {
-                        tightest: '-0.07em',
-                    }
-                }
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              neon: '#cfec0f',
+              black: {
+                DEFAULT: '#0a0a0a',
+                pure: '#000000',
+                soft: '#050505',
+                zinc: '#121212',
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
             }
+          }
         }
+      }
     </script>
-    <style type="text/css">
-        @layer base {
-            body {
-                background-color: #000000;
-                color: #ffffff;
-                -webkit-font-smoothing: antialiased;
-            }
-        }
-        .neon-glow {
-            text-shadow: 0 0 10px rgba(207, 236, 15, 0.5), 0 0 20px rgba(207, 236, 15, 0.2);
-        }
-        .glass-card {
-            background: rgba(18, 18, 18, 0.4);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .glass-nav {
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .btn-holy {
-            background: #cfec0f;
-            color: #000;
-            font-weight: 900;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-    </style>
     <script type="importmap">
 {
   "imports": {
@@ -67,13 +39,15 @@
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "lucide-react": "https://esm.sh/lucide-react@^0.475.0",
     "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
-    "@prisma/client": "https://esm.sh/@prisma/client@^7.3.0",
-    "next/": "https://esm.sh/next@^16.1.6/"
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.48.1",
+    "next/": "https://esm.sh/next@^16.1.6/",
+    "@prisma/client": "https://esm.sh/@prisma/client@^7.3.0"
   }
 }
 </script>
 </head>
-<body>
+<body class="bg-black">
     <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
 </body>
 </html>

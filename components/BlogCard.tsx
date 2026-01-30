@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Clock, ChevronRight, Shield } from 'lucide-react';
 
 interface BlogCardProps {
   image: string;
@@ -13,43 +13,57 @@ interface BlogCardProps {
   };
   date: string;
   readTime: string;
+  onClick?: () => void;
 }
 
-const BlogCard: React.FC<BlogCardProps> = ({ image, category, title, desc, author, date, readTime }) => {
+const BlogCard: React.FC<BlogCardProps> = ({ image, category, title, desc, author, date, readTime, onClick }) => {
   return (
-    <div className="bg-zinc-900/50 rounded-3xl overflow-hidden border border-white/5 hover:border-white/10 transition-all flex flex-col group">
-      <div className="relative aspect-video overflow-hidden">
+    <div 
+      onClick={onClick}
+      className="group cursor-pointer glass-card rounded-[40px] overflow-hidden flex flex-col h-full"
+    >
+      <div className="relative aspect-[16/10] overflow-hidden">
         <img
           src={image}
           alt={title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
         />
-        <div className="absolute bottom-4 left-4">
-          <span className="bg-[#cfec0f] text-black text-[10px] font-black px-3 py-1 uppercase rounded-md">
+        <div className="absolute top-6 left-6">
+          <span className="bg-neon text-black text-[9px] font-black px-4 py-1.5 uppercase rounded-full shadow-2xl">
             {category}
           </span>
         </div>
       </div>
       
-      <div className="p-8 flex flex-col flex-grow">
-        <h3 className="text-2xl font-bold mb-4 line-clamp-2 leading-tight group-hover:text-[#cfec0f] transition-colors">
+      <div className="p-10 flex flex-col flex-grow space-y-6">
+        <div className="flex items-center gap-4 text-zinc-500 text-[10px] font-black uppercase tracking-widest">
+          <div className="flex items-center gap-2"><Clock size={12} className="text-neon" /> {readTime} de leitura</div>
+          <div className="w-1 h-1 bg-zinc-800 rounded-full"></div>
+          <div>{date}</div>
+        </div>
+
+        <h3 className="text-3xl font-black uppercase italic leading-none tracking-tighter group-hover:text-neon transition-colors">
           {title}
         </h3>
-        <p className="text-gray-400 text-sm mb-8 line-clamp-2 leading-relaxed">
+        
+        <p className="text-zinc-500 text-sm leading-relaxed line-clamp-2">
           {desc}
         </p>
         
-        <div className="mt-auto flex items-center justify-between border-t border-white/5 pt-6">
+        <div className="pt-8 mt-auto flex items-center justify-between border-t border-white/5">
           <div className="flex items-center gap-3">
-            <img src={author.avatar} alt={author.name} className="w-10 h-10 rounded-full border-2 border-[#cfec0f]/20" />
-            <div>
-              <p className="text-white text-sm font-bold">{author.name}</p>
-              <p className="text-gray-500 text-[11px]">{date} • {readTime}</p>
+            <div className="relative">
+              <img src={author.avatar} alt={author.name} className="w-10 h-10 rounded-full border-2 border-neon/20 p-0.5" />
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-neon rounded-full flex items-center justify-center border-2 border-black">
+                {/* Fixed: Added missing Shield import from lucide-react */}
+                <Shield size={8} className="text-black fill-black" />
+              </div>
             </div>
+            <p className="text-white text-xs font-black uppercase tracking-widest">{author.name}</p>
           </div>
-          <button className="bg-white/5 hover:bg-[#cfec0f] hover:text-black p-3 rounded-full transition-all">
-            <ArrowUpRight size={18} />
-          </button>
+          <div className="w-12 h-12 bg-zinc-900 border border-white/5 rounded-2xl flex items-center justify-center group-hover:bg-neon group-hover:text-black transition-all">
+            <ArrowUpRight size={20} />
+          </div>
         </div>
       </div>
     </div>

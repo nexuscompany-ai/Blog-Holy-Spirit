@@ -13,8 +13,9 @@
     "react-dom": "^19.2.3",
     "lucide-react": "^0.475.0",
     "@google/genai": "^1.38.0",
-    "@prisma/client": "^7.3.0",
-    "next": "^16.1.6"
+    "@supabase/supabase-js": "^2.48.1",
+    "next": "^16.1.6",
+    "@prisma/client": "^7.3.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
