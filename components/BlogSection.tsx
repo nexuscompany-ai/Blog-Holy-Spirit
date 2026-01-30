@@ -35,10 +35,11 @@ const BlogSection: React.FC = () => {
     };
     fetchData();
 
-    // Lógica para detectar se o usuário quer ver eventos via URL/Link
     const handleHash = () => {
       if (window.location.hash === '#eventos') {
         setActiveTab('events');
+      } else if (window.location.hash === '#blog') {
+        setActiveTab('articles');
       }
     };
     window.addEventListener('hashchange', handleHash);
@@ -130,7 +131,7 @@ const BlogSection: React.FC = () => {
         </div>
 
         {activeTab === 'articles' ? (
-          <div className="grid md:grid-cols-2 gap-12">
+          <div className="grid md:grid-cols-2 gap-12 animate-in fade-in duration-500">
             {posts.map((post) => (
               <BlogCard 
                 key={post.id}
@@ -152,7 +153,7 @@ const BlogSection: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8 animate-in fade-in duration-500">
             {events.map((event) => (
               <div key={event.id} className="glass-card rounded-[40px] overflow-hidden group">
                 <div className="aspect-[4/3] relative overflow-hidden">

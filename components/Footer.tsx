@@ -53,7 +53,7 @@ const Footer: React.FC = () => {
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-neon text-black font-black py-4 px-8 rounded-2xl text-[10px] uppercase tracking-widest inline-block hover:shadow-[0_10px_30px_rgba(207,236,15,0.2)] transition-all"
+              className="bg-neon text-black font-black py-4 px-8 rounded-2xl text-[10px] uppercase tracking-widest inline-block hover:shadow-[0_10px_30px_rgba(207,236,15,0.2)] transition-all text-center"
             >
               CHAMAR NO WHATSAPP
             </a>
@@ -63,7 +63,7 @@ const Footer: React.FC = () => {
         <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 text-[9px] text-gray-700 font-black uppercase tracking-[0.3em]">
           <div className="flex flex-col md:flex-row items-center gap-4">
             <p>© 2024 HOLY SPIRIT ACADEMIA. TREINE PARA GLÓRIA DE DEUS.</p>
-            <a href="/admin" className="flex items-center gap-1 text-gray-800 hover:text-zinc-600 transition-colors lowercase">
+            <a href="/admin" className="flex items-center gap-1 text-gray-800 hover:text-zinc-600 transition-colors lowercase italic">
                <Lock size={10} /> portal interno
             </a>
           </div>

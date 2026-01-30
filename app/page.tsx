@@ -18,17 +18,28 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handleLocationChange = () => setPath(window.location.pathname);
+    let isMounted = true;
+
+    const handleLocationChange = () => {
+      if (isMounted) setPath(window.location.pathname);
+    };
     window.addEventListener('popstate', handleLocationChange);
 
     const fetchInitialSession = async () => {
       try {
         const sess = await dbService.getSession();
-        setSession(sess);
-      } catch (err) {
-        console.error("Auth error:", err);
+        if (isMounted) {
+          setSession(sess);
+        }
+      } catch (err: any) {
+        // Ignore abort errors which are common during component re-mounts/Strict Mode
+        if (err.name !== 'AbortError' && !err.message?.includes('aborted')) {
+          console.error("Auth error:", err);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -36,14 +47,19 @@ export default function Home() {
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (currentSession) {
-        const profile = await dbService.getSession();
-        setSession(profile);
+        try {
+          const profile = await dbService.getSession();
+          if (isMounted) setSession(profile);
+        } catch (e) {
+          // Silent catch for auth state change errors
+        }
       } else {
-        setSession(null);
+        if (isMounted) setSession(null);
       }
     });
 
     return () => {
+      isMounted = false;
       window.removeEventListener('popstate', handleLocationChange);
       authListener.subscription.unsubscribe();
     };
@@ -65,6 +81,7 @@ export default function Home() {
     );
   }
 
+  // Admin access strictly via /admin path
   if (path.startsWith('/admin')) {
     if (!session || session.role !== 'admin') {
       return <Login onLoginSuccess={() => navigate('/admin')} />;

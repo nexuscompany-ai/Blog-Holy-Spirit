@@ -64,28 +64,50 @@ export const dbService = {
   },
 
   async getSession() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return null;
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) return null;
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single();
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
 
-    return { user: session.user, role: profile?.role };
+      if (profileError) {
+        console.warn("Profile fetch error:", profileError);
+        return { user: session.user, role: 'user' };
+      }
+
+      return { user: session.user, role: profile?.role };
+    } catch (err: any) {
+      if (err.name === 'AbortError' || err.message?.includes('aborted')) {
+        return null;
+      }
+      throw err;
+    }
   },
 
   // SETTINGS
   async getSettings(): Promise<HolySettings> {
-    const { data } = await supabase.from('settings').select('*').single();
-    return data || {
-      gymName: 'Holy Spirit Academia',
-      phone: '5511999999999',
-      instagram: '@holyspirit.gym',
-      address: 'Av. das Nações, 1000 - SP',
-      website: 'www.holyspiritgym.com.br'
-    };
+    try {
+      const { data } = await supabase.from('settings').select('*').single();
+      return data || {
+        gymName: 'Holy Spirit Academia',
+        phone: '5511999999999',
+        instagram: '@holyspirit.gym',
+        address: 'Av. das Nações, 1000 - SP',
+        website: 'www.holyspiritgym.com.br'
+      };
+    } catch (e) {
+      return {
+        gymName: 'Holy Spirit Academia',
+        phone: '5511999999999',
+        instagram: '@holyspirit.gym',
+        address: 'Av. das Nações, 1000 - SP',
+        website: 'www.holyspiritgym.com.br'
+      };
+    }
   },
 
   async saveSettings(settings: HolySettings): Promise<void> {

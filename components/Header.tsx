@@ -15,7 +15,6 @@ const Header: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Links atualizados conforme solicitação
   const navLinks = [
     { name: 'Blog', href: '#blog' },
     { name: 'Eventos', href: '#blog' },
@@ -23,6 +22,13 @@ const Header: React.FC = () => {
 
   const whatsappNumber = settings?.phone?.replace(/\D/g, '') || '5511999999999';
   const waLink = `https://wa.me/${whatsappNumber}`;
+
+  const handleLinkClick = (href: string) => {
+    setIsOpen(false);
+    if (href === '#blog' && window.location.hash === '#eventos') {
+        // If clicking Blog but was on Eventos, force refresh or handle via state if needed
+    }
+  };
 
   return (
     <nav className={`fixed w-full z-50 transition-all duration-500 ${scrolled ? 'py-4 bg-black/95 backdrop-blur-xl border-b border-white/5' : 'py-8 bg-transparent'}`}>
@@ -42,7 +48,7 @@ const Header: React.FC = () => {
             {navLinks.map((link) => (
               <a
                 key={link.name}
-                href={link.href}
+                href={link.name === 'Eventos' ? '#eventos' : link.href}
                 className="text-zinc-400 hover:text-neon text-[11px] font-bold uppercase tracking-[0.2em] transition-colors"
               >
                 {link.name}
@@ -62,7 +68,7 @@ const Header: React.FC = () => {
             <button 
               onClick={() => setIsOpen(!isOpen)} 
               className="text-white p-2 hover:text-neon transition-colors"
-              aria-label="Menu"
+              aria-label="Toggle Menu"
             >
               {isOpen ? <X size={32} /> : <Menu size={32} />}
             </button>
@@ -76,14 +82,14 @@ const Header: React.FC = () => {
           <a 
             href="#blog" 
             className="text-4xl font-black uppercase italic tracking-tighter text-white hover:text-neon"
-            onClick={() => setIsOpen(false)}
+            onClick={() => handleLinkClick('#blog')}
           >
             Blog
           </a>
           <a 
-            href="#blog" 
+            href="#eventos" 
             className="text-4xl font-black uppercase italic tracking-tighter text-white hover:text-neon"
-            onClick={() => setIsOpen(false)}
+            onClick={() => handleLinkClick('#eventos')}
           >
             Eventos
           </a>
