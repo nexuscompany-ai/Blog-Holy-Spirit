@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Send, Sparkles, Loader2, CheckCircle2, 
@@ -20,34 +21,25 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
   const [step, setStep] = useState<'input' | 'editing'>('input');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [includeImage, setIncludeImage] = useState(true);
-  
-  const [autoConfig, setAutoConfig] = useState({
-    enabled: false,
-    frequency: 'daily',
-    days: ['Seg', 'Qua', 'Sex'],
-    time: '09:00',
-    lastRun: null
-  });
-
   const [iaPrompt, setIaPrompt] = useState('');
   const [articleData, setArticleData] = useState({
     title: '',
     excerpt: '',
     content: '',
-    category: 'Espiritualidade',
+    category: 'Musculação',
     image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
-    source: ''
+    slug: '',
+    metaTitle: '',
+    metaDescription: '',
+    keywords: ''
   });
 
-  const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-
   const loadingMessages = [
-    "Escritora IA analisando tendências de alta performance...",
-    "Sintonizando com os valores da Holy Spirit...",
-    "Redigindo conteúdo com autoridade e profundidade...",
-    "Otimizando estrutura para máxima legibilidade...",
-    "Finalizando revisão de tom de voz e SEO..."
+    "Identificando palavras-chave de alta conversão...",
+    "Sintonizando Mentalidade de Guerreiro e Fé...",
+    "Redigindo estrutura SEO avançada (H1, H2, H3)...",
+    "Garantindo autoridade E-E-A-T no conteúdo...",
+    "Finalizando CTA estratégico para o WhatsApp..."
   ];
 
   useEffect(() => {
@@ -62,43 +54,30 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     return () => clearInterval(interval);
   }, [loading]);
 
-  const toggleDay = (day: string) => {
-    setAutoConfig({
-      ...autoConfig,
-      days: autoConfig.days.includes(day) 
-        ? autoConfig.days.filter((d: string) => d !== day) 
-        : [...autoConfig.days, day]
-    });
-  };
-
   const generateWithIA = async () => {
     if (!iaPrompt) return;
     setLoading(true);
     
     try {
-      // Re-initialize GoogleGenAI right before the call to ensure the latest environment settings are used.
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-pro-preview",
-        contents: `Escreva um artigo completo sobre: ${iaPrompt}`,
+        contents: `Gere um artigo completo e otimizado para blog sobre: ${iaPrompt}`,
         config: {
-          // Utilizing systemInstruction to define the persona and constraints more effectively.
-          systemInstruction: `Você é a Escritora Editorial Senior da Holy Spirit Gym, especialista em marketing de conteúdo, SEO avançado e princípios cristãos aplicados à musculação.
-          Seu objetivo é gerar artigos de alto desempenho que atraiam tráfego orgânico, eduquem e convertam.
-
+          systemInstruction: `FUNÇÃO: Criador de Conteúdo Profissional para Blog de Academia Holy Spirit.
+          ESPECIALIDADE: Marketing de conteúdo, SEO avançado, copywriting persuasivo e fitness cristão.
+          MENTALIDADE: Especialista em fitness, musculação, saúde e lifestyle ativo. Foco em autoridade E-E-A-T.
+          OBJETIVOS: Gerar tráfego orgânico qualificado, educar iniciantes e estimular conversão (WhatsApp).
+          
           ESTRUTURA OBRIGATÓRIA:
-          - Título otimizado para SEO (H1)
-          - Introdução envolvente conectando musculação e espírito
-          - Subtítulos bem definidos (H2 e H3)
-          - Conteúdo aprofundado com exemplos práticos e bullet points
-          - Conclusão estratégica com CTA para WhatsApp
+          1. Título H1 magnético com palavra-chave.
+          2. Introdução conectando com a dor/desejo.
+          3. Subtítulos H2/H3 escaneáveis.
+          4. Conteúdo aprofundado com bullet points.
+          5. Bloco de autoridade: Mitos e Verdades, Erros Comuns.
+          6. Chamada para Ação (CTA) estratégica.
           
-          REGRAS:
-          - Tom profissional, motivador e inspirador.
-          - Use palavras-chave naturais.
-          - Evite keyword stuffing.
-          
-          Retorne um JSON estrito com: title, excerpt, content, category, slug.`,
+          RETORNO: JSON estrito.`,
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -107,27 +86,33 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               excerpt: { type: Type.STRING },
               content: { type: Type.STRING },
               category: { type: Type.STRING },
-              slug: { type: Type.STRING }
+              slug: { type: Type.STRING },
+              metaTitle: { type: Type.STRING },
+              metaDescription: { type: Type.STRING },
+              keywords: { type: Type.STRING },
+              cta: { type: Type.STRING }
             },
-            required: ["title", "excerpt", "content", "category", "slug"]
+            required: ["title", "excerpt", "content", "category", "slug", "metaTitle", "metaDescription", "keywords", "cta"]
           }
         }
       });
 
-      // Directly accessing the response.text property as per GenerateContentResponse definition.
       const result = JSON.parse(response.text || '{}');
       setArticleData({
         ...articleData,
         title: result.title,
         excerpt: result.excerpt,
-        content: result.content,
+        content: result.content + "\n\n" + result.cta,
         category: result.category,
-        source: 'ESCRITORA IA PILOTO'
+        slug: result.slug,
+        metaTitle: result.metaTitle,
+        metaDescription: result.metaDescription,
+        keywords: result.keywords
       });
       setStep('editing');
     } catch (error: any) {
       console.error(error);
-      alert("Houve um pequeno desvio na conexão com a Escritora IA. Verifique se a sua conexão está ativa.");
+      alert("Erro ao processar IA. Verifique sua chave API.");
     } finally {
       setLoading(false);
     }
@@ -140,8 +125,8 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       excerpt: articleData.excerpt,
       content: articleData.content,
       category: articleData.category,
-      image: includeImage ? articleData.image : '',
-      slug: articleData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      image: articleData.image,
+      slug: articleData.slug || articleData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
     };
 
@@ -160,13 +145,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
           onClick={() => { setActiveSubTab('ia'); setStep('input'); }}
           className={`flex items-center gap-3 px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeSubTab === 'ia' ? 'bg-[#cfec0f] text-black shadow-lg shadow-[#cfec0f]/20' : 'text-gray-500 hover:text-white'}`}
         >
-          <Sparkles size={14} /> Escritora IA
-        </button>
-        <button 
-          onClick={() => { setActiveSubTab('auto'); setStep('input'); }}
-          className={`flex items-center gap-3 px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeSubTab === 'auto' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
-        >
-          <Clock size={14} /> Postagens Automáticas
+          <Sparkles size={14} /> Escritora IA Holy Spirit
         </button>
         <button 
           onClick={() => { setActiveSubTab('manual'); setStep('editing'); }}
@@ -177,20 +156,20 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       </div>
 
       <div className="flex-grow">
-        {step === 'input' && activeSubTab === 'ia' && (
+        {step === 'input' && (
           <div className="grid lg:grid-cols-2 gap-12 animate-in fade-in duration-700">
             <div className="bg-zinc-900/10 p-12 rounded-[40px] border border-white/5 space-y-10">
               <div className="space-y-3">
-                <h2 className="text-4xl font-black uppercase italic tracking-tighter">Piloto Editorial</h2>
-                <p className="text-gray-500 text-sm font-medium">Defina o rumo do conteúdo e a nossa Escritora IA cuidará de toda a complexidade.</p>
+                <h2 className="text-4xl font-black uppercase italic tracking-tighter text-[#cfec0f]">Estrategista de SEO</h2>
+                <p className="text-gray-500 text-sm font-medium">Transforme temas em artigos de alto desempenho que atraem e convertem.</p>
               </div>
               
               <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-2">Qual o tema do próximo blog?</label>
+                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-2">Qual o tema ou palavra-chave?</label>
                 <textarea
                   value={iaPrompt}
                   onChange={(e) => setIaPrompt(e.target.value)}
-                  placeholder="Ex: A importância do descanso dominical para hipertrofia máxima..."
+                  placeholder="Ex: Benefícios do agachamento livre para a postura e disciplina..."
                   className="w-full bg-black border border-white/10 rounded-3xl px-8 py-8 outline-none focus:border-[#cfec0f] transition-all text-xl min-h-[220px] resize-none placeholder:text-zinc-800"
                 />
               </div>
@@ -198,117 +177,33 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               <button
                 onClick={generateWithIA}
                 disabled={loading || !iaPrompt}
-                className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 shadow-[0_15px_40px_rgba(207,236,15,0.2)] group"
+                className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 shadow-[0_15px_40px_rgba(207,236,15,0.2)]"
               >
-                {loading ? <Loader2 className="animate-spin" /> : <Send size={18} className="group-hover:translate-x-1 transition-transform" />}
-                {loading ? "ESCULPINDO TEXTO..." : "SOLICITAR REDAÇÃO"}
+                {loading ? <Loader2 className="animate-spin" /> : <Zap size={18} />}
+                {loading ? "REDIGINDO ESTRATÉGIA..." : "GERAR ARTIGO COMPLETO"}
               </button>
             </div>
 
             <div className="flex flex-col justify-center items-center text-center p-12 border border-dashed border-white/10 rounded-[40px] bg-black/10">
               {!loading ? (
                 <div className="space-y-8 max-w-sm">
-                  <div className="w-24 h-24 bg-[#cfec0f]/5 rounded-[32px] flex items-center justify-center text-[#cfec0f] mx-auto shadow-inner">
+                  <div className="w-24 h-24 bg-[#cfec0f]/5 rounded-[32px] flex items-center justify-center text-[#cfec0f] mx-auto">
                     <BrainCircuit size={48} />
                   </div>
-                  <div className="space-y-4">
-                    <h3 className="text-2xl font-black uppercase italic tracking-tight">Escritora Editorial</h3>
-                    <p className="text-gray-500 text-sm leading-relaxed">Nossa IA não apenas escreve, ela entende a cultura Holy Spirit: o equilíbrio entre o ferro e a fé.</p>
-                  </div>
-                  <div className="flex justify-center gap-3">
-                    {['Refinada', 'SEO', 'Veloz'].map(tag => (
-                      <span key={tag} className="px-4 py-2 bg-zinc-900 border border-white/5 rounded-full text-[9px] font-black uppercase tracking-widest text-gray-500">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+                  <h3 className="text-2xl font-black uppercase italic">Padrão Holy Spirit</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">Artigos originais, confiáveis e alinhados às boas práticas do Google (E-E-A-T).</p>
                 </div>
               ) : (
                 <div className="w-full space-y-12 animate-in zoom-in duration-500">
                   <div className="relative w-32 h-32 mx-auto">
-                    <div className="absolute inset-0 border-[6px] border-[#cfec0f]/10 rounded-full"></div>
                     <div className="absolute inset-0 border-[6px] border-[#cfec0f] rounded-full border-t-transparent animate-spin"></div>
                     <div className="absolute inset-0 flex items-center justify-center text-[#cfec0f]">
-                       <Sparkles size={32} className="animate-pulse" />
+                       <Sparkles size={32} />
                     </div>
                   </div>
-                  <div className="space-y-6">
-                    <p className="text-[#cfec0f] font-black uppercase tracking-[0.3em] text-sm animate-pulse">{loadingMessages[loadingStep]}</p>
-                    <div className="w-full bg-zinc-900 h-2 rounded-full overflow-hidden max-w-xs mx-auto">
-                      <div className="bg-[#cfec0f] h-full transition-all duration-[1500ms] ease-in-out" style={{ width: `${(loadingStep + 1) * 20}%` }}></div>
-                    </div>
-                  </div>
+                  <p className="text-[#cfec0f] font-black uppercase tracking-[0.3em] text-sm animate-pulse">{loadingMessages[loadingStep]}</p>
                 </div>
               )}
-            </div>
-          </div>
-        )}
-
-        {activeSubTab === 'auto' && (
-          <div className="bg-zinc-900/10 p-16 rounded-[50px] border border-white/5 space-y-16 animate-in fade-in duration-700">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 border-b border-white/5 pb-10">
-              <div className="space-y-2">
-                <h2 className="text-4xl font-black uppercase italic tracking-tighter text-blue-500">Fluxo Automático</h2>
-                <p className="text-gray-500 text-sm font-medium">A IA assume o comando total da sua estratégia de conteúdo.</p>
-              </div>
-              <button 
-                onClick={() => setAutoConfig({...autoConfig, enabled: !autoConfig.enabled})}
-                className={`px-10 py-5 rounded-3xl font-black uppercase tracking-widest text-[11px] transition-all flex items-center gap-4 ${autoConfig.enabled ? 'bg-blue-600 text-white shadow-2xl shadow-blue-600/30' : 'bg-zinc-800 text-gray-500'}`}
-              >
-                <div className={`w-3 h-3 rounded-full ${autoConfig.enabled ? 'bg-white animate-pulse' : 'bg-gray-600'}`}></div>
-                {autoConfig.enabled ? 'POSTAGENS ATIVAS' : 'INICIAR AUTOMAÇÃO'}
-              </button>
-            </div>
-
-            <div className="grid lg:grid-cols-3 gap-16">
-              <div className="space-y-8">
-                <div className="flex items-center gap-3 text-white">
-                  <Calendar size={20} className="text-blue-500" />
-                  <span className="text-xs font-black uppercase tracking-widest">Frequência Base</span>
-                </div>
-                <div className="space-y-3">
-                  {['daily', 'weekly', 'monthly'].map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => setAutoConfig({...autoConfig, frequency: f})}
-                      className={`w-full px-8 py-5 rounded-2xl text-[11px] font-black uppercase text-left transition-all border ${autoConfig.frequency === f ? 'bg-blue-600/10 border-blue-600 text-blue-500' : 'bg-black border-white/5 text-gray-500 hover:border-white/20'}`}
-                    >
-                      {f === 'daily' ? 'Diariamente' : f === 'weekly' ? 'Semanalmente' : 'Mensalmente'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-8">
-                <div className="flex items-center gap-3 text-white">
-                  <Globe size={20} className="text-blue-500" />
-                  <span className="text-xs font-black uppercase tracking-widest">Dias da Semana</span>
-                </div>
-                <div className="grid grid-cols-4 gap-3">
-                  {daysOfWeek.map((day) => (
-                    <button
-                      key={day}
-                      onClick={() => toggleDay(day)}
-                      className={`h-14 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-center border ${autoConfig.days.includes(day) ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-black border-white/5 text-gray-500 hover:border-white/20'}`}
-                    >
-                      {day}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-8 text-center lg:text-left">
-                <div className="flex items-center gap-3 text-white justify-center lg:justify-start">
-                  <Clock size={20} className="text-blue-500" />
-                  <span className="text-xs font-black uppercase tracking-widest">Horário de Envio</span>
-                </div>
-                <input 
-                  type="time" 
-                  value={autoConfig.time}
-                  onChange={(e) => setAutoConfig({...autoConfig, time: e.target.value})}
-                  className="w-full bg-black border border-white/10 rounded-3xl px-8 py-7 text-4xl font-black text-center text-blue-500 outline-none focus:border-blue-600 transition-all shadow-inner"
-                />
-              </div>
             </div>
           </div>
         )}
@@ -319,48 +214,47 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               <div className="flex items-center gap-5">
                 <div className="bg-[#cfec0f]/10 p-4 rounded-2xl text-[#cfec0f]"><Edit3 size={24} /></div>
                 <div>
-                  <h3 className="text-xl font-black uppercase italic tracking-tight">Consagração Final</h3>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">O artigo piloto foi gerado. Refine o que desejar.</p>
+                  <h3 className="text-xl font-black uppercase italic tracking-tight">Revisão e Otimização</h3>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">A IA estruturou os dados SEO. Verifique antes de publicar.</p>
                 </div>
               </div>
               <div className="flex items-center gap-6">
                 <button onClick={() => setStep('input')} className="text-[10px] font-black uppercase text-gray-500 hover:text-white transition-all">Descartar</button>
-                <button onClick={publishArticle} className="bg-[#cfec0f] text-black px-12 py-5 rounded-2xl text-xs font-black uppercase hover:scale-105 transition-all shadow-2xl shadow-[#cfec0f]/20">Publicar Agora</button>
+                <button onClick={publishArticle} className="bg-[#cfec0f] text-black px-12 py-5 rounded-2xl text-xs font-black uppercase hover:scale-105 transition-all shadow-lg">Publicar no Blog</button>
               </div>
             </div>
 
             <div className="grid lg:grid-cols-3 gap-10">
               <div className="lg:col-span-2 space-y-8">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Título do Post</label>
-                  <input value={articleData.title} onChange={e => setArticleData({...articleData, title: e.target.value})} className="w-full bg-zinc-900/20 border border-white/5 rounded-2xl px-8 py-6 text-2xl font-black italic outline-none focus:border-[#cfec0f] transition-all" />
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest ml-4">H1 - Título Otimizado</label>
+                  <input value={articleData.title} onChange={e => setArticleData({...articleData, title: e.target.value})} className="w-full bg-zinc-900/20 border border-white/5 rounded-2xl px-8 py-6 text-2xl font-black italic outline-none focus:border-[#cfec0f]" />
                 </div>
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Corpo Editorial</label>
-                  <textarea value={articleData.content} onChange={e => setArticleData({...articleData, content: e.target.value})} className="w-full bg-zinc-900/20 border border-white/5 rounded-3xl p-10 text-sm leading-relaxed min-h-[600px] outline-none focus:border-[#cfec0f] transition-all" />
+                
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest ml-4">Conteúdo do Artigo</label>
+                   <textarea value={articleData.content} onChange={e => setArticleData({...articleData, content: e.target.value})} className="w-full bg-zinc-900/20 border border-white/5 rounded-3xl p-10 text-sm leading-relaxed min-h-[600px] outline-none focus:border-[#cfec0f]" />
                 </div>
               </div>
 
               <div className="space-y-8">
-                <div className="bg-zinc-900/20 p-8 rounded-[40px] border border-white/5 space-y-8">
-                   <div className="flex items-center justify-between">
-                     <div className="flex items-center gap-3">
-                        <Camera size={18} className="text-[#cfec0f]" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Imagem de Capa</span>
-                     </div>
-                     <button 
-                       onClick={() => setIncludeImage(!includeImage)}
-                       className={`w-12 h-6 rounded-full transition-all relative ${includeImage ? 'bg-[#cfec0f]' : 'bg-zinc-800'}`}
-                     >
-                       <div className={`absolute top-1 w-4 h-4 rounded-full transition-all ${includeImage ? 'right-1 bg-black' : 'left-1 bg-gray-600'}`}></div>
-                     </button>
+                <div className="bg-zinc-900/20 p-8 rounded-[40px] border border-white/5 space-y-6">
+                   <h4 className="text-[10px] font-black uppercase tracking-widest text-[#cfec0f]">Metadata & SEO</h4>
+                   
+                   <div className="space-y-2">
+                     <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Slug da URL</label>
+                     <input value={articleData.slug} readOnly className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-xs text-zinc-400" />
                    </div>
 
-                   {includeImage ? (
-                     <div onClick={() => fileInputRef.current?.click()} className="aspect-video bg-black border border-white/5 rounded-3xl overflow-hidden cursor-pointer group relative flex items-center justify-center">
+                   <div className="space-y-2">
+                     <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Keywords Sugeridas</label>
+                     <p className="text-[10px] bg-black/40 p-3 rounded-xl text-zinc-500 border border-white/5">{articleData.keywords}</p>
+                   </div>
+                   
+                   <div className="aspect-video bg-black border border-white/5 rounded-3xl overflow-hidden cursor-pointer group relative flex items-center justify-center mt-6" onClick={() => fileInputRef.current?.click()}>
                         <img src={articleData.image} className="w-full h-full object-cover group-hover:opacity-40 transition-all" />
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-                          <Upload className="text-[#cfec0f]" />
+                          <Camera className="text-[#cfec0f]" />
                         </div>
                         <input type="file" ref={fileInputRef} onChange={(e) => {
                           const file = e.target.files?.[0];
@@ -370,31 +264,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                             reader.readAsDataURL(file);
                           }
                         }} className="hidden" />
-                     </div>
-                   ) : (
-                     <div className="aspect-video bg-black/50 border border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center gap-3 text-gray-700">
-                       <EyeOff size={32} />
-                       <span className="text-[9px] font-black uppercase">Post sem imagem</span>
-                     </div>
-                   )}
-                </div>
-
-                <div className="bg-zinc-900/20 p-8 rounded-[40px] border border-white/5 space-y-8">
-                   <div className="space-y-4">
-                     <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest block">Categoria Holy</label>
-                     <select value={articleData.category} onChange={e => setArticleData({...articleData, category: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-5 py-5 text-xs font-bold outline-none cursor-pointer focus:border-[#cfec0f]">
-                       <option>Espiritualidade</option>
-                       <option>Treino de Elite</option>
-                       <option>Nutrição Sagrada</option>
-                       <option>Mentalidade</option>
-                     </select>
                    </div>
-                   {articleData.source && (
-                     <div className="flex items-center gap-3 p-4 bg-[#cfec0f]/5 border border-[#cfec0f]/10 rounded-2xl">
-                       <Zap size={16} className="text-[#cfec0f]" />
-                       <span className="text-[9px] font-black uppercase text-[#cfec0f] tracking-widest">{articleData.source}</span>
-                     </div>
-                   )}
                 </div>
               </div>
             </div>
@@ -402,18 +272,9 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
         )}
       </div>
 
-      <footer className="mt-20 pt-10 border-t border-white/5 pb-10 flex flex-col md:flex-row justify-between items-center gap-8">
-        <div className="flex items-center gap-4 text-gray-700 opacity-60 hover:opacity-100 transition-opacity">
-          <ShieldAlert size={14} />
-          <p className="text-[9px] font-black uppercase tracking-[0.2em]">
-            Tecnologia IA: <span className="text-gray-500 font-bold">Conteúdos gerados artificialmente via Gemini 3. Revise sempre.</span>
-          </p>
-        </div>
-      </footer>
-
       {success && (
-        <div className="fixed bottom-12 right-12 bg-green-600 text-white px-10 py-6 rounded-3xl font-black uppercase tracking-widest shadow-[0_20px_60px_rgba(0,0,0,0.5)] flex items-center gap-4 animate-in slide-in-from-right-12 z-[100]">
-          <CheckCircle2 size={24} /> Publicado com Sucesso!
+        <div className="fixed bottom-12 right-12 bg-green-600 text-white px-10 py-6 rounded-3xl font-black uppercase tracking-widest shadow-2xl flex items-center gap-4 animate-in slide-in-from-right-12 z-[100]">
+          <CheckCircle2 size={24} /> Templo Atualizado!
         </div>
       )}
     </div>
