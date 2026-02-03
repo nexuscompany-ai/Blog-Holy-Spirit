@@ -40,7 +40,6 @@ export interface HolyEvent {
   image?: string;
 }
 
-// Singleton para evitar múltiplas chamadas simultâneas (Previne AbortError)
 let pendingSession: Promise<any> | null = null;
 
 export const dbService = {
@@ -55,10 +54,10 @@ export const dbService = {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
     
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
+    const { data: profile } = await supabase.from('profiles').select('role').eq(data.user.id).single();
     if (profile?.role !== 'admin') {
       await supabase.auth.signOut();
-      throw new Error('Acesso negado: você não é um administrador.');
+      throw new Error('Acesso negado: privilégios insuficientes.');
     }
     return { ...data, role: profile.role };
   },
@@ -71,13 +70,7 @@ export const dbService = {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return null;
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-
+        const { data: profile } = await supabase.from('profiles').select('role').eq(session.user.id).single();
         return { user: session.user, role: profile?.role || 'user' };
       } catch (err) {
         return null;
@@ -105,7 +98,6 @@ export const dbService = {
     };
 
     if (isPlaceholder) {
-      // Local storage fallback for settings in demo mode
       const stored = localStorage.getItem('hs_settings');
       return stored ? JSON.parse(stored) : defaultSettings;
     }
@@ -118,18 +110,12 @@ export const dbService = {
     }
   },
 
-  // Fix: Added missing saveSettings method to handle profile updates
   async saveSettings(settings: HolySettings) {
     if (isPlaceholder) {
       localStorage.setItem('hs_settings', JSON.stringify(settings));
       return;
     }
-    const { data: existing } = await supabase.from('settings').select('id').maybeSingle();
-    if (existing) {
-      await supabase.from('settings').update(settings).eq('id', existing.id);
-    } else {
-      await supabase.from('settings').insert([settings]);
-    }
+    await supabase.from('settings').upsert({ ...settings, id: 'config' });
   },
 
   async getBlogs() {
@@ -140,8 +126,12 @@ export const dbService = {
 
   async saveBlog(post: any) {
     if (isPlaceholder) return;
-    const { error } = await supabase.from('posts').insert([post]);
-    if (error) throw error;
+    await supabase.from('posts').insert([post]);
+  },
+
+  async deleteBlog(id: string) {
+    if (isPlaceholder) return;
+    await supabase.from('posts').delete().eq('id', id);
   },
 
   async getEvents() {
@@ -155,26 +145,19 @@ export const dbService = {
     await supabase.from('events').insert([event]);
   },
 
-  // Fix: Added missing updateEvent method for managing event status
   async updateEvent(id: string, updates: Partial<HolyEvent>) {
     if (isPlaceholder) return;
     await supabase.from('events').update(updates).eq('id', id);
   },
 
-  // Fix: Added missing deleteEvent method
   async deleteEvent(id: string) {
     if (isPlaceholder) return;
     await supabase.from('events').delete().eq('id', id);
   },
 
-  async deleteBlog(id: string) {
-    if (isPlaceholder) return;
-    await supabase.from('posts').delete().eq('id', id);
-  },
-
   async getAutomationSettings() {
     if (isPlaceholder) return { enabled: false, frequency_days: 3, topics: '', target_category: 'Musculação' };
-    const { data } = await supabase.from('automation_settings').select('*').single();
+    const { data } = await supabase.from('automation_settings').select('*').maybeSingle();
     return data || { enabled: false, frequency_days: 3, topics: '', target_category: 'Musculação' };
   },
 
