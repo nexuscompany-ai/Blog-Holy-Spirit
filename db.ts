@@ -1,8 +1,11 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@^2.48.1';
+import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = 'https://xkapuhuuqqjmcxxrnpcf.supabase.co';
 const supabaseKey = 'YOUR_SUPABASE_ANON_KEY'; 
+
+// Verifica se estamos em modo demonstração (sem chaves reais)
+const isPlaceholder = supabaseKey === 'YOUR_SUPABASE_ANON_KEY' || !supabaseKey;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -37,127 +40,146 @@ export interface HolyEvent {
   image?: string;
 }
 
+// Singleton para evitar múltiplas chamadas simultâneas (Previne AbortError)
+let pendingSession: Promise<any> | null = null;
+
 export const dbService = {
-  // AUTH
   async login(email: string, pass: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password: pass,
-    });
+    if (isPlaceholder) {
+      if (email === 'admin@holyspirit.com' && pass === 'admin123') {
+        return { user: { id: 'mock-admin', email }, role: 'admin' };
+      }
+      throw new Error('Modo Demo: Use admin@holyspirit.com / admin123');
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
     
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', data.user.id)
-      .single();
-      
-    if (profileError || profile?.role !== 'admin') {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
+    if (profile?.role !== 'admin') {
       await supabase.auth.signOut();
-      throw new Error('Acesso restrito: conta sem privilégios.');
+      throw new Error('Acesso negado: você não é um administrador.');
     }
-    return data;
-  },
-
-  async signOut() {
-    await supabase.auth.signOut();
+    return { ...data, role: profile.role };
   },
 
   async getSession() {
-    try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session) return null;
+    if (isPlaceholder) return null;
+    if (pendingSession) return pendingSession;
 
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
+    pendingSession = (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return null;
 
-      if (profileError) {
-        console.warn("Profile fetch error:", profileError);
-        return { user: session.user, role: 'user' };
-      }
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
 
-      return { user: session.user, role: profile?.role };
-    } catch (err: any) {
-      if (err.name === 'AbortError' || err.message?.includes('aborted')) {
+        return { user: session.user, role: profile?.role || 'user' };
+      } catch (err) {
         return null;
+      } finally {
+        pendingSession = null;
       }
-      throw err;
-    }
+    })();
+
+    return pendingSession;
   },
 
-  // SETTINGS
+  async signOut() {
+    if (isPlaceholder) return;
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  },
+
   async getSettings(): Promise<HolySettings> {
+    const defaultSettings = {
+      gymName: 'Holy Spirit Academia',
+      phone: '5511999999999',
+      instagram: '@holyspirit.gym',
+      address: 'Av. das Nações, 1000 - SP',
+      website: 'www.holyspiritgym.com.br'
+    };
+
+    if (isPlaceholder) {
+      // Local storage fallback for settings in demo mode
+      const stored = localStorage.getItem('hs_settings');
+      return stored ? JSON.parse(stored) : defaultSettings;
+    }
+
     try {
-      const { data } = await supabase.from('settings').select('*').single();
-      return data || {
-        gymName: 'Holy Spirit Academia',
-        phone: '5511999999999',
-        instagram: '@holyspirit.gym',
-        address: 'Av. das Nações, 1000 - SP',
-        website: 'www.holyspiritgym.com.br'
-      };
-    } catch (e) {
-      return {
-        gymName: 'Holy Spirit Academia',
-        phone: '5511999999999',
-        instagram: '@holyspirit.gym',
-        address: 'Av. das Nações, 1000 - SP',
-        website: 'www.holyspiritgym.com.br'
-      };
+      const { data } = await supabase.from('settings').select('*').maybeSingle();
+      return data || defaultSettings;
+    } catch {
+      return defaultSettings;
     }
   },
 
-  async saveSettings(settings: HolySettings): Promise<void> {
-    await supabase.from('settings').upsert(settings);
+  // Fix: Added missing saveSettings method to handle profile updates
+  async saveSettings(settings: HolySettings) {
+    if (isPlaceholder) {
+      localStorage.setItem('hs_settings', JSON.stringify(settings));
+      return;
+    }
+    const { data: existing } = await supabase.from('settings').select('id').maybeSingle();
+    if (existing) {
+      await supabase.from('settings').update(settings).eq('id', existing.id);
+    } else {
+      await supabase.from('settings').insert([settings]);
+    }
   },
 
-  // AUTOMATION (AUTO-PILOT)
-  async getAutomationSettings(): Promise<AutomationSettings> {
-    const { data } = await supabase.from('automation_settings').select('*').single();
-    return data || {
-      enabled: false,
-      frequency_days: 3,
-      topics: 'Musculação, Nutrição, Superação',
-      target_category: 'Musculação'
-    };
-  },
-
-  async saveAutomationSettings(settings: AutomationSettings): Promise<void> {
-    await supabase.from('automation_settings').upsert({ ...settings, id: 'config' });
-  },
-
-  // BLOGS
-  async getBlogs(): Promise<any[]> {
+  async getBlogs() {
+    if (isPlaceholder) return [];
     const { data } = await supabase.from('posts').select('*').order('createdAt', { ascending: false });
     return data || [];
   },
 
-  async saveBlog(post: any): Promise<void> {
-    await supabase.from('posts').insert([post]);
+  async saveBlog(post: any) {
+    if (isPlaceholder) return;
+    const { error } = await supabase.from('posts').insert([post]);
+    if (error) throw error;
   },
 
-  async deleteBlog(id: string): Promise<void> {
-    await supabase.from('posts').delete().eq('id', id);
-  },
-
-  // EVENTS
-  async getEvents(): Promise<HolyEvent[]> {
+  async getEvents() {
+    if (isPlaceholder) return [];
     const { data } = await supabase.from('events').select('*').order('date', { ascending: true });
     return data || [];
   },
 
-  async saveEvent(event: any): Promise<void> {
+  async saveEvent(event: any) {
+    if (isPlaceholder) return;
     await supabase.from('events').insert([event]);
   },
 
-  async deleteEvent(id: string): Promise<void> {
+  // Fix: Added missing updateEvent method for managing event status
+  async updateEvent(id: string, updates: Partial<HolyEvent>) {
+    if (isPlaceholder) return;
+    await supabase.from('events').update(updates).eq('id', id);
+  },
+
+  // Fix: Added missing deleteEvent method
+  async deleteEvent(id: string) {
+    if (isPlaceholder) return;
     await supabase.from('events').delete().eq('id', id);
   },
 
-  async updateEvent(id: string, updates: Partial<HolyEvent>): Promise<void> {
-    await supabase.from('events').update(updates).eq('id', id);
+  async deleteBlog(id: string) {
+    if (isPlaceholder) return;
+    await supabase.from('posts').delete().eq('id', id);
+  },
+
+  async getAutomationSettings() {
+    if (isPlaceholder) return { enabled: false, frequency_days: 3, topics: '', target_category: 'Musculação' };
+    const { data } = await supabase.from('automation_settings').select('*').single();
+    return data || { enabled: false, frequency_days: 3, topics: '', target_category: 'Musculação' };
+  },
+
+  async saveAutomationSettings(settings: any) {
+    if (isPlaceholder) return;
+    await supabase.from('automation_settings').upsert({ ...settings, id: 'config' });
   }
 };

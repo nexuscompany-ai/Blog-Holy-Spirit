@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
 import WhyUs from '../components/WhyUs';
@@ -16,28 +16,28 @@ export default function Home() {
   const [path, setPath] = useState(typeof window !== 'undefined' ? window.location.pathname : '/');
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    let isMounted = true;
+    isMounted.current = true;
 
     const handleLocationChange = () => {
-      if (isMounted) setPath(window.location.pathname);
+      if (isMounted.current) setPath(window.location.pathname);
     };
     window.addEventListener('popstate', handleLocationChange);
 
     const fetchInitialSession = async () => {
       try {
         const sess = await dbService.getSession();
-        if (isMounted) {
+        if (isMounted.current) {
           setSession(sess);
         }
       } catch (err: any) {
-        // Ignore abort errors which are common during component re-mounts/Strict Mode
         if (err.name !== 'AbortError' && !err.message?.includes('aborted')) {
-          console.error("Auth error:", err);
+          console.error("Critical Auth Error:", err);
         }
       } finally {
-        if (isMounted) {
+        if (isMounted.current) {
           setLoading(false);
         }
       }
@@ -46,20 +46,22 @@ export default function Home() {
     fetchInitialSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      if (!isMounted.current) return;
+
       if (currentSession) {
         try {
           const profile = await dbService.getSession();
-          if (isMounted) setSession(profile);
+          if (isMounted.current) setSession(profile);
         } catch (e) {
-          // Silent catch for auth state change errors
+          // Silent fail for background auth changes
         }
       } else {
-        if (isMounted) setSession(null);
+        if (isMounted.current) setSession(null);
       }
     });
 
     return () => {
-      isMounted = false;
+      isMounted.current = false;
       window.removeEventListener('popstate', handleLocationChange);
       authListener.subscription.unsubscribe();
     };
@@ -81,7 +83,6 @@ export default function Home() {
     );
   }
 
-  // Admin access strictly via /admin path
   if (path.startsWith('/admin')) {
     if (!session || session.role !== 'admin') {
       return <Login onLoginSuccess={() => navigate('/admin')} />;

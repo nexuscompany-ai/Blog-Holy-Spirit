@@ -11,9 +11,7 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  <React.StrictMode>
-    <RootLayout>
-      <Home />
-    </RootLayout>
-  </React.StrictMode>
+  <RootLayout>
+    <Home />
+  </RootLayout>
 );
