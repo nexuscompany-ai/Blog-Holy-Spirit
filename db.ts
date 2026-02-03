@@ -1,13 +1,14 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://xkapuhuuqqjmcxxrnpcf.supabase.co';
-const supabaseKey = 'YOUR_SUPABASE_ANON_KEY'; 
+// Use process.env for environment variables to avoid ImportMeta errors in this environment
+const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://xkapuhuuqqjmcxxrnpcf.supabase.co';
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Verifica se estamos em modo demonstração (sem chaves reais)
-const isPlaceholder = supabaseKey === 'YOUR_SUPABASE_ANON_KEY' || !supabaseKey;
+// Modo demonstração ativo se a chave não for encontrada
+const isPlaceholder = !process.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseKey || 'placeholder_key');
 
 export interface HolySettings {
   id?: string;
@@ -48,29 +49,34 @@ export const dbService = {
       if (email === 'admin@holyspirit.com' && pass === 'admin123') {
         return { user: { id: 'mock-admin', email }, role: 'admin' };
       }
-      throw new Error('Modo Demo: Use admin@holyspirit.com / admin123');
+      throw new Error('Modo Demo: Use admin@holyspirit.com / admin123 ou configure o arquivo .env');
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
     
-    const { data: profile } = await supabase.from('profiles').select('role').eq(data.user.id).single();
-    if (profile?.role !== 'admin') {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profileError || profile?.role !== 'admin') {
       await supabase.auth.signOut();
-      throw new Error('Acesso negado: privilégios insuficientes.');
+      throw new Error('Acesso negado: você não tem permissão de administrador.');
     }
     return { ...data, role: profile.role };
   },
 
   async getSession() {
-    if (isPlaceholder) return null;
+    if (isPlaceholder) return { user: { email: 'admin@holyspirit.com' }, role: 'admin' };
     if (pendingSession) return pendingSession;
 
     pendingSession = (async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return null;
-        const { data: profile } = await supabase.from('profiles').select('role').eq(session.user.id).single();
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
         return { user: session.user, role: profile?.role || 'user' };
       } catch (err) {
         return null;
@@ -83,7 +89,10 @@ export const dbService = {
   },
 
   async signOut() {
-    if (isPlaceholder) return;
+    if (isPlaceholder) {
+      console.log("Sign out (Demo Mode)");
+      return;
+    }
     await supabase.auth.signOut();
     window.location.href = '/';
   },
@@ -120,13 +129,26 @@ export const dbService = {
 
   async getBlogs() {
     if (isPlaceholder) return [];
-    const { data } = await supabase.from('posts').select('*').order('createdAt', { ascending: false });
-    return data || [];
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .order('createdAt', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (e) {
+      console.error("Erro ao buscar blogs:", e);
+      return [];
+    }
   },
 
   async saveBlog(post: any) {
     if (isPlaceholder) return;
-    await supabase.from('posts').insert([post]);
+    const { error } = await supabase.from('posts').insert([{
+        ...post,
+        createdAt: new Date().toISOString()
+    }]);
+    if (error) throw error;
   },
 
   async deleteBlog(id: string) {
@@ -136,8 +158,12 @@ export const dbService = {
 
   async getEvents() {
     if (isPlaceholder) return [];
-    const { data } = await supabase.from('events').select('*').order('date', { ascending: true });
-    return data || [];
+    try {
+      const { data } = await supabase.from('events').select('*').order('date', { ascending: true });
+      return data || [];
+    } catch {
+      return [];
+    }
   },
 
   async saveEvent(event: any) {
@@ -156,9 +182,14 @@ export const dbService = {
   },
 
   async getAutomationSettings() {
-    if (isPlaceholder) return { enabled: false, frequency_days: 3, topics: '', target_category: 'Musculação' };
-    const { data } = await supabase.from('automation_settings').select('*').maybeSingle();
-    return data || { enabled: false, frequency_days: 3, topics: '', target_category: 'Musculação' };
+    const defaults: AutomationSettings = { enabled: false, frequency_days: 3, topics: '', target_category: 'Musculação' };
+    if (isPlaceholder) return defaults;
+    try {
+      const { data } = await supabase.from('automation_settings').select('*').maybeSingle();
+      return data || defaults;
+    } catch {
+      return defaults;
+    }
   },
 
   async saveAutomationSettings(settings: any) {

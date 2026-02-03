@@ -61,15 +61,27 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     setLoading(true);
     
     try {
+      // Initialize GoogleGenAI client with the required process.env.API_KEY format
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-pro-preview",
         contents: `Gere um artigo de alta performance sobre: ${iaPrompt}`,
         config: {
-          systemInstruction: `Você é o estrategista de conteúdo da Holy Spirit Gym. 
-          Crie artigos que unam musculação, SEO e mentalidade de superação.
-          O tom deve ser inspirador, técnico e direto.
-          Retorne um JSON com: title, excerpt, content, category.`,
+          // Incorporating the specified professional blog content creator system prompt rules
+          systemInstruction: `Você é um Criador de Conteúdo Profissional para Blog de Academia, especialista em marketing, SEO e mentalidade.
+          Objetivo: Gerar artigos que atraiam tráfego e posicionem a Holy Spirit como referência.
+          
+          ESTRUTURA OBRIGATÓRIA:
+          1. Título SEO (H1)
+          2. Introdução envolvente (dor/desejo)
+          3. Subtítulos (H2/H3) escaneáveis
+          4. Conteúdo técnico e prático
+          5. CTA (Chamada para ação) final
+          
+          TOM: Profissional, motivador e inspirador.
+          REGRAS: Parágrafos curtos, linguagem humana e autoridade.
+          
+          Retorne obrigatoriamente um JSON com: title, excerpt, content, category.`,
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -84,10 +96,12 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
         }
       });
 
+      // Properly extract the text property from GenerateContentResponse
       const result = JSON.parse(response.text || '{}');
       setArticleData(prev => ({ ...prev, ...result, source: 'ai' }));
       setStep('editing');
     } catch (error) {
+      console.error("Gemini Generation Error:", error);
       alert("Falha na conexão com a Inteligência Holy Spirit.");
     } finally {
       setLoading(false);
