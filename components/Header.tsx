@@ -3,7 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Menu, X, Shield } from 'lucide-react';
 import { dbService, HolySettings } from '../db';
 
-const Header: React.FC = () => {
+// Added HeaderProps interface to fix type error in App.tsx
+interface HeaderProps {
+  onAdminClick?: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onAdminClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [settings, setSettings] = useState<HolySettings | null>(null);

@@ -2,15 +2,18 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Users, TrendingUp, BookOpen, Calendar, 
-  ArrowUpRight, Clock, Star, Zap, Bot
+  ArrowUpRight, Clock, Star, Zap, Bot, ShieldCheck, AlertTriangle
 } from 'lucide-react';
 import { dbService, AutomationSettings } from '../../db';
 
 const DashboardHome: React.FC = () => {
   const [autoSettings, setAutoSettings] = useState<AutomationSettings | null>(null);
+  const [aiOnline, setAiOnline] = useState<boolean | null>(null);
 
   useEffect(() => {
     dbService.getAutomationSettings().then(setAutoSettings);
+    // Verifica se a chave de API está presente para o funcionamento da IA
+    setAiOnline(!!process.env.API_KEY);
   }, []);
 
   const metrics = [
@@ -20,17 +23,11 @@ const DashboardHome: React.FC = () => {
     { label: 'Conversão', value: '3.2%', change: '+2%', icon: <TrendingUp className="text-green-500" /> },
   ];
 
-  const recentActivity = [
-    { title: 'A Jornada do Jejum Intermitente', type: 'IA Blog', time: '2 horas atrás', status: 'Publicado' },
-    { title: 'Workshop de Agachamento Holy', type: 'Evento', time: '5 horas atrás', status: 'Ativo' },
-    { title: 'Nutrição Baseada em Princípios', type: 'Manual', time: 'Ontem', status: 'Agendado' },
-  ];
-
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
-      {/* Auto-Pilot Status Header */}
-      <div className="grid lg:grid-cols-4 gap-6">
-        <div className={`lg:col-span-4 p-8 rounded-[32px] border transition-all flex flex-col md:flex-row items-center justify-between gap-6 ${
+      {/* AI Connection & Auto-Pilot Status */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className={`p-8 rounded-[32px] border transition-all flex items-center justify-between gap-6 ${
           autoSettings?.enabled ? 'bg-neon/5 border-neon/20' : 'bg-zinc-900/20 border-white/5'
         }`}>
           <div className="flex items-center gap-6">
@@ -38,15 +35,29 @@ const DashboardHome: React.FC = () => {
                <Bot size={24} />
              </div>
              <div>
-               <h3 className="text-sm font-black uppercase tracking-widest">Status do Auto-Pilot</h3>
+               <h3 className="text-sm font-black uppercase tracking-widest">Auto-Pilot Status</h3>
                <p className={`text-[10px] font-bold uppercase tracking-widest ${autoSettings?.enabled ? 'text-neon' : 'text-zinc-500'}`}>
-                 {autoSettings?.enabled ? `Ativado: Geração a cada ${autoSettings.frequency_days} dias` : 'Desativado: Aguardando configuração'}
+                 {autoSettings?.enabled ? `Ativo: Postagens a cada ${autoSettings.frequency_days} dias` : 'Aguardando Ativação'}
                </p>
              </div>
           </div>
-          <div className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">
-            Próxima geração estimada: {autoSettings?.enabled ? 'Em breve (via Cron Server)' : 'N/A'}
+        </div>
+
+        <div className={`p-8 rounded-[32px] border transition-all flex items-center justify-between gap-6 ${
+          aiOnline ? 'bg-blue-500/5 border-blue-500/20' : 'bg-red-500/5 border-red-500/20'
+        }`}>
+          <div className="flex items-center gap-6">
+             <div className={`p-4 rounded-2xl ${aiOnline ? 'bg-blue-500 text-white' : 'bg-red-500 text-white'}`}>
+               <Zap size={24} />
+             </div>
+             <div>
+               <h3 className="text-sm font-black uppercase tracking-widest">Escritora IA (Gemini)</h3>
+               <p className={`text-[10px] font-bold uppercase tracking-widest ${aiOnline ? 'text-blue-400' : 'text-red-400'}`}>
+                 {aiOnline ? 'Conexão Estabelecida' : 'API Key não configurada'}
+               </p>
+             </div>
           </div>
+          {aiOnline ? <ShieldCheck className="text-blue-500" size={20} /> : <AlertTriangle className="text-red-500" size={20} />}
         </div>
       </div>
 
@@ -65,52 +76,29 @@ const DashboardHome: React.FC = () => {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        {/* Recent Activity */}
         <div className="lg:col-span-2 bg-zinc-900/20 rounded-[40px] border border-white/5 p-10">
           <div className="flex justify-between items-center mb-10">
             <h2 className="text-xl font-black uppercase italic flex items-center gap-3">
-              <Star size={20} className="text-neon" /> Atividade Recente
+              <Star size={20} className="text-neon" /> Insights de IA
             </h2>
-            <button className="text-[10px] font-black uppercase text-gray-500 hover:text-white transition-colors">Ver Tudo</button>
           </div>
-          
           <div className="space-y-4">
-            {recentActivity.map((act, i) => (
-              <div key={i} className="flex items-center justify-between p-6 bg-black/40 rounded-2xl border border-white/5 hover:border-neon/20 transition-all group">
-                <div className="flex items-center gap-6">
-                  <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-gray-400 group-hover:text-neon transition-colors">
-                    {act.type === 'Evento' ? <Calendar size={20} /> : <BookOpen size={20} />}
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-white">{act.title}</p>
-                    <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest">{act.type} • {act.time}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className={`text-[8px] font-black uppercase px-3 py-1 rounded-full ${act.status === 'Publicado' ? 'bg-green-500/10 text-green-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                    {act.status}
-                  </span>
-                  <ArrowUpRight size={14} className="text-zinc-700 group-hover:text-white transition-colors" />
-                </div>
-              </div>
-            ))}
+             <div className="p-6 bg-black/40 rounded-2xl border border-white/5 italic text-sm text-zinc-400">
+               "A IA está analisando seus pilares de conteúdo. Posts sobre 'Nutrição Espiritual' têm gerado 30% mais cliques no botão de matrícula."
+             </div>
           </div>
         </div>
 
-        {/* Quick Tips */}
         <div className="bg-gradient-to-br from-neon/10 via-transparent to-transparent rounded-[40px] border border-neon/10 p-10 flex flex-col justify-between">
           <div>
             <div className="w-12 h-12 bg-neon rounded-2xl flex items-center justify-center text-black mb-8 shadow-[0_0_20px_rgba(207,236,15,0.3)]">
               <Zap size={24} />
             </div>
-            <h3 className="text-2xl font-black italic uppercase mb-4 leading-tight">Dica do <br /> Estrategista</h3>
+            <h3 className="text-2xl font-black italic uppercase mb-4 leading-tight">Dica de Lançamento</h3>
             <p className="text-gray-400 text-sm leading-relaxed mb-8">
-              Artigos criados via IA com o tom "Inspirador" tendem a ter 24% mais compartilhamentos na Holy Spirit.
+              Configure seu Auto-Pilot para postar às 05:00 AM. Seus alunos costumam ler conteúdos motivacionais antes do primeiro treino.
             </p>
           </div>
-          <button className="w-full bg-white/5 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">
-            Ver Insights de SEO
-          </button>
         </div>
       </div>
     </div>

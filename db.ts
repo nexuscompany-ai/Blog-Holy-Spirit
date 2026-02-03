@@ -1,12 +1,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Use process.env for environment variables to avoid ImportMeta errors in this environment
+// Variáveis de ambiente injetadas no processo de build/hosting
 const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://xkapuhuuqqjmcxxrnpcf.supabase.co';
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
-
-// Modo demonstração ativo se a chave não for encontrada
-const isPlaceholder = !process.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey || 'placeholder_key');
 
@@ -41,58 +38,31 @@ export interface HolyEvent {
   image?: string;
 }
 
-let pendingSession: Promise<any> | null = null;
-
 export const dbService = {
   async login(email: string, pass: string) {
-    if (isPlaceholder) {
-      if (email === 'admin@holyspirit.com' && pass === 'admin123') {
-        return { user: { id: 'mock-admin', email }, role: 'admin' };
-      }
-      throw new Error('Modo Demo: Use admin@holyspirit.com / admin123 ou configure o arquivo .env');
-    }
-
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
     
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', data.user.id)
-      .single();
-
-    if (profileError || profile?.role !== 'admin') {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
+    if (profile?.role !== 'admin') {
       await supabase.auth.signOut();
-      throw new Error('Acesso negado: você não tem permissão de administrador.');
+      throw new Error('Acesso negado: Este portal é restrito a administradores.');
     }
     return { ...data, role: profile.role };
   },
 
   async getSession() {
-    if (isPlaceholder) return { user: { email: 'admin@holyspirit.com' }, role: 'admin' };
-    if (pendingSession) return pendingSession;
-
-    pendingSession = (async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return null;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return null;
+    try {
         const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
         return { user: session.user, role: profile?.role || 'user' };
-      } catch (err) {
-        return null;
-      } finally {
-        pendingSession = null;
-      }
-    })();
-
-    return pendingSession;
+    } catch {
+        return { user: session.user, role: 'user' };
+    }
   },
 
   async signOut() {
-    if (isPlaceholder) {
-      console.log("Sign out (Demo Mode)");
-      return;
-    }
     await supabase.auth.signOut();
     window.location.href = '/';
   },
@@ -105,12 +75,6 @@ export const dbService = {
       address: 'Av. das Nações, 1000 - SP',
       website: 'www.holyspiritgym.com.br'
     };
-
-    if (isPlaceholder) {
-      const stored = localStorage.getItem('hs_settings');
-      return stored ? JSON.parse(stored) : defaultSettings;
-    }
-
     try {
       const { data } = await supabase.from('settings').select('*').maybeSingle();
       return data || defaultSettings;
@@ -120,80 +84,61 @@ export const dbService = {
   },
 
   async saveSettings(settings: HolySettings) {
-    if (isPlaceholder) {
-      localStorage.setItem('hs_settings', JSON.stringify(settings));
-      return;
-    }
     await supabase.from('settings').upsert({ ...settings, id: 'config' });
   },
 
   async getBlogs() {
-    if (isPlaceholder) return [];
     try {
-      const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .order('createdAt', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    } catch (e) {
-      console.error("Erro ao buscar blogs:", e);
-      return [];
+        const { data, error } = await supabase
+          .from('posts')
+          .select('*')
+          .order('createdAt', { ascending: false });
+        return data || [];
+    } catch {
+        return [];
     }
   },
 
   async saveBlog(post: any) {
-    if (isPlaceholder) return;
-    const { error } = await supabase.from('posts').insert([{
-        ...post,
-        createdAt: new Date().toISOString()
-    }]);
+    const { error } = await supabase.from('posts').insert([post]);
     if (error) throw error;
   },
 
   async deleteBlog(id: string) {
-    if (isPlaceholder) return;
     await supabase.from('posts').delete().eq('id', id);
   },
 
   async getEvents() {
-    if (isPlaceholder) return [];
     try {
-      const { data } = await supabase.from('events').select('*').order('date', { ascending: true });
-      return data || [];
+        const { data } = await supabase.from('events').select('*').order('date', { ascending: true });
+        return data || [];
     } catch {
-      return [];
+        return [];
     }
   },
 
   async saveEvent(event: any) {
-    if (isPlaceholder) return;
     await supabase.from('events').insert([event]);
   },
 
   async updateEvent(id: string, updates: Partial<HolyEvent>) {
-    if (isPlaceholder) return;
     await supabase.from('events').update(updates).eq('id', id);
   },
 
   async deleteEvent(id: string) {
-    if (isPlaceholder) return;
     await supabase.from('events').delete().eq('id', id);
   },
 
-  async getAutomationSettings() {
-    const defaults: AutomationSettings = { enabled: false, frequency_days: 3, topics: '', target_category: 'Musculação' };
-    if (isPlaceholder) return defaults;
+  async getAutomationSettings(): Promise<AutomationSettings> {
     try {
-      const { data } = await supabase.from('automation_settings').select('*').maybeSingle();
-      return data || defaults;
+        const { data } = await supabase.from('automation_settings').select('*').maybeSingle();
+        return data || { enabled: false, frequency_days: 3, topics: '', target_category: 'Musculação' };
     } catch {
-      return defaults;
+        return { enabled: false, frequency_days: 3, topics: '', target_category: 'Musculação' };
     }
   },
 
   async saveAutomationSettings(settings: any) {
-    if (isPlaceholder) return;
     await supabase.from('automation_settings').upsert({ ...settings, id: 'config' });
   }
 };
