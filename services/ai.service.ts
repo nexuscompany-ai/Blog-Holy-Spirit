@@ -29,17 +29,26 @@ export const aiService = {
         })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Erro na comunicação com o servidor de IA.');
+        throw new Error(data.error || 'Erro desconhecido no servidor de IA.');
       }
 
-      const rawData = await response.json();
-      // O backend retorna uma string JSON que precisa ser parseada
-      return typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+      // Se o dado já for um objeto (OpenAI ou Gemini parseado pelo handler)
+      if (typeof data === 'object' && data !== null && data.title) {
+        return data as GeneratedPost;
+      }
+
+      // Se for uma string JSON (Gemini às vezes retorna assim)
+      try {
+        return JSON.parse(data);
+      } catch {
+        throw new Error("A IA retornou um formato inválido. Tente novamente.");
+      }
     } catch (error: any) {
       console.error("AI Service Error:", error);
-      throw new Error("Falha ao gerar conteúdo: " + (error.message || "Verifique as chaves no painel da Vercel."));
+      throw new Error(error.message || "Erro na conexão com o Templo da IA.");
     }
   },
 
@@ -58,13 +67,13 @@ export const aiService = {
       });
 
       if (response.ok) {
-        return { success: true, message: "Conexão com o Backend de IA estabelecida com sucesso." };
+        return { success: true, message: "Conexão estabelecida." };
       }
       
       const err = await response.json();
-      return { success: false, message: err.error || "Erro de resposta do servidor." };
+      return { success: false, message: err.error || "Erro de resposta." };
     } catch (error: any) {
-      return { success: false, message: "Erro de rede: Certifique-se de que as chaves estão configuradas na Vercel." };
+      return { success: false, message: "Erro de rede." };
     }
   }
 };
