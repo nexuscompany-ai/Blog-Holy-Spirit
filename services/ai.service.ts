@@ -24,7 +24,8 @@ export const aiService = {
           prompt: fullPrompt,
           config: {
             model: config.model,
-            temperature: config.temperature
+            temperature: config.temperature,
+            baseUrl: config.baseUrl
           }
         })
       });
