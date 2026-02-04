@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { Instagram, MapPin, MessageCircle, Lock, Phone } from 'lucide-react';
+import Logo from './Logo';
 
 const Footer: React.FC = () => {
-  const settings = JSON.parse(localStorage.getItem('hs_settings') || '{"phone": "(11) 99999-9999", "instagram": "@holyspirit.gym", "address": "Av. das Nações, 1000 - SP"}');
+  const settings = JSON.parse(localStorage.getItem('holy_settings') || '{"phone": "(11) 99999-9999", "instagram": "@holyspirit.gym", "address": "Av. das Nações, 1000 - SP"}');
   const waLink = `https://wa.me/${settings.phone.replace(/\D/g, '')}`;
 
   return (
@@ -11,12 +13,8 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 mb-24">
           <div className="col-span-1 lg:col-span-2">
             <a href="/" className="flex items-center gap-4 mb-8 group">
-              <img 
-                src="/holyspirit-logo.svg" 
-                alt="Holy Spirit Logo" 
-                className="w-10 h-10 group-hover:rotate-12 transition-transform duration-500"
-              />
-              <span className="text-3xl font-black tracking-tighter text-white uppercase">
+              <Logo className="w-12 h-12 group-hover:rotate-12 transition-transform duration-500" />
+              <span className="text-3xl font-black tracking-tighter text-white uppercase italic">
                 HOLY<span className="text-neon">SPIRIT</span>
               </span>
             </a>
@@ -55,7 +53,6 @@ const Footer: React.FC = () => {
             <a 
               href={waLink}
               target="_blank"
-              rel="noopener noreferrer"
               className="bg-neon text-black font-black py-4 px-8 rounded-2xl text-[10px] uppercase tracking-widest inline-block hover:shadow-[0_10px_30px_rgba(207,236,15,0.2)] transition-all text-center"
             >
               CHAMAR NO WHATSAPP
@@ -65,14 +62,10 @@ const Footer: React.FC = () => {
 
         <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 text-[9px] text-gray-700 font-black uppercase tracking-[0.3em]">
           <div className="flex flex-col md:flex-row items-center gap-4">
-            <p>© 2024 HOLY SPIRIT ACADEMIA. TREINE PARA GLÓRIA DE DEUS.</p>
+            <p>© 2024 HOLY SPIRIT ACADEMIA. TREINE O TEMPLO.</p>
             <a href="/admin" className="flex items-center gap-1 text-gray-800 hover:text-zinc-600 transition-colors lowercase italic">
                <Lock size={10} /> portal interno
             </a>
-          </div>
-          <div className="flex gap-12">
-            <a href="#" className="hover:text-white transition-colors">Privacidade</a>
-            <a href="#" className="hover:text-white transition-colors">Código de Honra</a>
           </div>
         </div>
       </div>
