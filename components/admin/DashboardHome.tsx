@@ -2,9 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Users, TrendingUp, BookOpen, Calendar, 
-  ArrowUpRight, Clock, Star, Zap, Bot, ShieldCheck, AlertTriangle
+  ArrowUpRight, Clock, Star, Zap, Bot, ShieldCheck, AlertTriangle, Loader2
 } from 'lucide-react';
 import { dbService, AutomationSettings, DashboardMetrics } from '../../db';
+import { aiService } from '../../services/ai.service';
 
 const DashboardHome: React.FC = () => {
   const [autoSettings, setAutoSettings] = useState<AutomationSettings | null>(null);
@@ -23,11 +24,12 @@ const DashboardHome: React.FC = () => {
         setAutoSettings(auto);
         setMetrics(m);
         
-        // Verifica se a chave existe e parece válida
-        const key = process.env.API_KEY;
-        setAiStatus(key && key.length > 20 ? 'online' : 'offline');
+        // Verifica o status chamando o teste de integração real
+        const aiTest = await aiService.testIntegration();
+        setAiStatus(aiTest.success ? 'online' : 'offline');
       } catch (err) {
         console.error("Dashboard error:", err);
+        setAiStatus('offline');
       } finally {
         setLoading(false);
       }
@@ -77,12 +79,12 @@ const DashboardHome: React.FC = () => {
         }`}>
           <div className="flex items-center gap-6">
              <div className={`p-4 rounded-2xl ${aiStatus === 'online' ? 'bg-blue-500 text-white' : 'bg-red-500 text-white'}`}>
-               <Zap size={24} />
+               {aiStatus === 'checking' ? <Loader2 className="animate-spin" size={24} /> : <Zap size={24} />}
              </div>
              <div>
-               <h3 className="text-sm font-black uppercase tracking-widest">Motor IA (TEST API BLOG)</h3>
+               <h3 className="text-sm font-black uppercase tracking-widest">Motor IA (Backend Protegido)</h3>
                <p className={`text-[10px] font-bold uppercase tracking-widest ${aiStatus === 'online' ? 'text-blue-400' : 'text-red-400'}`}>
-                 {aiStatus === 'online' ? 'Pronto para Criar' : 'Erro de Configuração ou Cota'}
+                 {aiStatus === 'online' ? 'Pronto para Criar' : 'Aguardando Configuração Vercel'}
                </p>
              </div>
           </div>
@@ -111,7 +113,7 @@ const DashboardHome: React.FC = () => {
           <div className="p-6 bg-black/40 rounded-2xl border border-white/5 italic text-sm text-zinc-400 leading-relaxed">
             {metrics?.postsCount && metrics.postsCount > 0 
               ? "Seu Templo está ganhando autoridade. Continue postando para melhorar o SEO orgânico."
-              : "A IA está pronta para gerar seu primeiro conteúdo. Vá em 'Escritora IA' para começar."
+              : "A IA está pronta para gerar seu primeiro conteúdo no servidor seguro."
             }
           </div>
         </div>
