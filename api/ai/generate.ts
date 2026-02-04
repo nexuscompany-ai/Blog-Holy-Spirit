@@ -1,11 +1,4 @@
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/api/ai/generate.ts b/api/ai/generate.ts
-index 7947e04b36163b43700c3f05b75cb065ef1e8240..8d1da3dfa890f56fb7a6fc7078f217faf720c16c 100644
---- a/api/ai/generate.ts
-+++ b/api/ai/generate.ts
-@@ -1,74 +1,90 @@
- 
- export const config = {
+export const config = {
    runtime: 'edge',
  };
  
