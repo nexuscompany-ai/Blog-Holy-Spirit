@@ -7,7 +7,10 @@ export const aiService = {
     try {
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
           prompt: prompt,
           category: config.category,
@@ -18,13 +21,16 @@ export const aiService = {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erro na central de comando n8n.');
+        // Se houver detalhes, mostramos o erro específico
+        const errorMsg = data.details ? `${data.error} (${data.details})` : (data.error || 'Erro na central n8n');
+        throw new Error(errorMsg);
       }
 
       return data;
     } catch (error: any) {
       console.error("AI Service Error:", error);
-      throw new Error(error.message || "Erro de conexão com o servidor de automação.");
+      // Mantemos a mensagem original do erro para o usuário saber o que aconteceu
+      throw new Error(error.message || "Erro de rede ao conectar com a automação.");
     }
   },
 
@@ -43,12 +49,13 @@ export const aiService = {
         })
       });
 
+      const data = await response.json();
       return { 
         success: response.ok, 
-        message: response.ok ? "Conexão n8n Estabelecida" : "n8n não respondeu" 
+        message: response.ok ? "Conexão n8n OK" : (data.details || "n8n Offline") 
       };
     } catch (error: any) {
-      return { success: false, message: "Erro de rede com n8n" };
+      return { success: false, message: "Erro de Conexão Local" };
     }
   }
 };
