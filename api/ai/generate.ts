@@ -31,7 +31,7 @@ export default async function handler(req: Request) {
         body: JSON.stringify({
           model: userConfig?.model || 'gpt-3.5-turbo',
           messages: [
-            { role: 'system', content: 'Você é um estrategista de SEO e Redator Fitness para a academia Holy Spirit, uma academia cristã. Retorne sempre JSON puro.' },
+            { role: 'system', content: 'Você é um estrategista de SEO e Redator Fitness para a academia Holy Spirit. Retorne sempre JSON puro.' },
             { role: 'user', content: prompt }
           ],
           temperature: userConfig?.temperature || 0.7,
