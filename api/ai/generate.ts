@@ -5,7 +5,7 @@ export const config = {
 const DEFAULT_N8N_WEBHOOK_URL =
   'https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator';
 
-const corsHeaders = {
+const corsHeaders: HeadersInit = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Accept',
@@ -13,7 +13,7 @@ const corsHeaders = {
 };
 
 export default async function handler(req: Request): Promise<Response> {
-  // CORS preflight
+  // Preflight CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -51,7 +51,7 @@ export default async function handler(req: Request): Promise<Response> {
     process.env.N8N_WEBHOOK_URL || DEFAULT_N8N_WEBHOOK_URL;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
 
   try {
     const res = await fetch(webhookUrl, {
@@ -69,7 +69,7 @@ export default async function handler(req: Request): Promise<Response> {
       signal: controller.signal,
     });
 
-    clearTimeout(timeout);
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const text = await res.text().catch(() => '');
@@ -84,7 +84,6 @@ export default async function handler(req: Request): Promise<Response> {
       { status: 200, headers: corsHeaders }
     );
   } catch (err: any) {
-    // timeout esperado (n8n processa em background)
     if (err?.name === 'AbortError') {
       return new Response(
         JSON.stringify({
@@ -97,4 +96,10 @@ export default async function handler(req: Request): Promise<Response> {
 
     return new Response(
       JSON.stringify({
-        error: 'Erro ao conectar com o
+        error: 'Erro ao conectar com o n8n',
+        details: err?.message || 'Erro desconhecido',
+      }),
+      { status: 500, headers: corsHeaders }
+    );
+  }
+}
