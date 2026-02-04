@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ShieldCheck, Loader2, ArrowRight, Mail, Lock, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Loader2, ArrowRight, Mail, Lock, AlertCircle, Terminal } from 'lucide-react';
 import { dbService } from '../../db';
 
 interface LoginProps {
@@ -22,7 +22,15 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       await dbService.login(email, password);
       onLoginSuccess();
     } catch (err: any) {
-      setError(err.message || 'Falha na autenticação.');
+      console.error("Login Error:", err);
+      // Tratamento amigável para erro 401 ou chaves inválidas
+      if (err.status === 401 || err.message?.includes('API key') || err.message?.includes('Anon key')) {
+        setError('Erro de Configuração: Sua VITE_SUPABASE_ANON_KEY é inválida ou não foi configurada no ambiente.');
+      } else if (err.message?.includes('invalid login credentials')) {
+        setError('Credenciais inválidas: Verifique seu email e senha no Supabase Auth.');
+      } else {
+        setError(err.message || 'Falha na autenticação com o servidor.');
+      }
     } finally {
       setLoading(false);
     }
@@ -39,7 +47,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             HOLY<span className="text-neon">ADMIN</span>
           </h1>
           <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2">
-            Autenticação Segura • Supabase Auth
+            Portal de Gestão • Supabase Auth
           </p>
         </div>
 
@@ -52,8 +60,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email do administrador"
-                className="w-full bg-zinc-900 border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-white outline-none focus:border-neon/50 transition-all placeholder:text-zinc-700"
+                placeholder="Email admin"
+                className="w-full bg-zinc-900 border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-white outline-none focus:border-neon/50 transition-all placeholder:text-zinc-700 text-sm"
               />
             </div>
             <div className="relative group">
@@ -63,16 +71,26 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Senha de acesso"
-                className="w-full bg-zinc-900 border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-white outline-none focus:border-neon/50 transition-all placeholder:text-zinc-700"
+                placeholder="Senha"
+                className="w-full bg-zinc-900 border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-white outline-none focus:border-neon/50 transition-all placeholder:text-zinc-700 text-sm"
               />
             </div>
           </div>
 
           {error && (
-            <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 p-4 rounded-xl">
-              <AlertCircle className="text-red-500 shrink-0" size={16} />
-              <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{error}</p>
+            <div className="flex flex-col gap-3 bg-red-500/10 border border-red-500/20 p-5 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="text-red-500 shrink-0" size={16} />
+                <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">Erro de Acesso</p>
+              </div>
+              <p className="text-zinc-400 text-[10px] leading-relaxed font-medium">
+                {error}
+              </p>
+              {error.includes('Configuração') && (
+                <div className="pt-2 border-t border-red-500/10 flex items-center gap-2 text-[8px] text-zinc-500 uppercase font-black">
+                   <Terminal size={10} /> Dica: Verifique o arquivo .env
+                </div>
+              )}
             </div>
           )}
 
@@ -82,7 +100,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             className="w-full bg-neon text-black font-black py-5 rounded-2xl uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 shadow-2xl shadow-neon/20 disabled:opacity-50"
           >
             {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={18} />}
-            {loading ? 'VALIDANDO SESSÃO...' : 'ENTRAR NO PAINEL'}
+            {loading ? 'AUTENTICANDO...' : 'ENTRAR NO PAINEL'}
           </button>
         </form>
 
@@ -90,7 +108,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           href="/"
           className="w-full text-zinc-600 hover:text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"
         >
-          Voltar para o Templo <ArrowRight size={12} />
+          Voltar ao Início <ArrowRight size={12} />
         </a>
       </div>
     </div>

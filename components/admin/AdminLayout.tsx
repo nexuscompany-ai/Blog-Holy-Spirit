@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, List, Calendar, Sparkles, 
@@ -36,8 +35,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
   return (
     <div className="flex min-h-screen bg-[#050505] text-white selection:bg-[#cfec0f] selection:text-black">
       <aside className="w-64 border-r border-white/5 bg-black p-6 flex flex-col fixed h-full z-20">
-        <div className="flex items-center gap-2 mb-12">
-          <div className="w-6 h-6 bg-[#cfec0f] rounded-sm rotate-45"></div>
+        <div className="flex items-center gap-3 mb-12">
+          <img src="/holyspirit-logo.svg" alt="Admin Logo" className="w-8 h-8" />
           <span className="text-xl font-black tracking-tighter uppercase">
             Holy<span className="text-[#cfec0f]">Admin</span>
           </span>

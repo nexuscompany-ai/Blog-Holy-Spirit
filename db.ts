@@ -1,11 +1,20 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Variáveis de ambiente injetadas no processo de build/hosting
-const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://xkapuhuuqqjmcxxrnpcf.supabase.co';
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+// Tenta obter as variáveis de diversos contextos possíveis (Vite, Process, etc)
+const getEnv = (name: string) => {
+  if (typeof process !== 'undefined' && process.env && process.env[name]) return process.env[name];
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[name]) return import.meta.env[name];
+  return '';
+};
 
-export const supabase = createClient(supabaseUrl, supabaseKey || 'placeholder_key');
+const supabaseUrl = getEnv('VITE_SUPABASE_URL') || 'https://xkapuhuuqqjmcxxrnpcf.supabase.co';
+const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY');
+
+// Se a chave estiver vazia, o Supabase retornará 401. 
+// Em ambiente de desenvolvimento local, certifique-se de que o .env está configurado.
+export const supabase = createClient(supabaseUrl, supabaseKey || 'MISSING_ANON_KEY');
 
 export interface HolySettings {
   id?: string;
@@ -40,13 +49,20 @@ export interface HolyEvent {
 
 export const dbService = {
   async login(email: string, pass: string) {
+    if (!supabaseKey) {
+      throw new Error('Configuração ausente: VITE_SUPABASE_ANON_KEY não encontrada nas variáveis de ambiente.');
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    if (error) throw error;
+    if (error) {
+      if (error.message.includes('API key')) throw new Error('API Key do Supabase inválida ou expirada.');
+      throw error;
+    }
     
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
     if (profile?.role !== 'admin') {
       await supabase.auth.signOut();
-      throw new Error('Acesso negado: Este portal é restrito a administradores.');
+      throw new Error('Acesso negado: Este portal é restrito a administradores (role admin).');
     }
     return { ...data, role: profile.role };
   },
@@ -70,7 +86,7 @@ export const dbService = {
   async getSettings(): Promise<HolySettings> {
     const defaultSettings = {
       gymName: 'Holy Spirit Academia',
-      phone: '5511999999999',
+      phone: '(11) 99999-9999',
       instagram: '@holyspirit.gym',
       address: 'Av. das Nações, 1000 - SP',
       website: 'www.holyspiritgym.com.br'
@@ -89,7 +105,7 @@ export const dbService = {
 
   async getBlogs() {
     try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('posts')
           .select('*')
           .order('createdAt', { ascending: false });

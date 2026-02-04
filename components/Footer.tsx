@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Mail, Phone, Instagram, MapPin, MessageCircle, Lock } from 'lucide-react';
+import { Instagram, MapPin, MessageCircle, Lock, Phone } from 'lucide-react';
 
 const Footer: React.FC = () => {
   const settings = JSON.parse(localStorage.getItem('hs_settings') || '{"phone": "(11) 99999-9999", "instagram": "@holyspirit.gym", "address": "Av. das Nações, 1000 - SP"}');
@@ -11,8 +10,12 @@ const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 mb-24">
           <div className="col-span-1 lg:col-span-2">
-            <a href="/" className="flex items-center gap-2 mb-8">
-              <div className="w-8 h-8 bg-neon rounded-sm rotate-45"></div>
+            <a href="/" className="flex items-center gap-4 mb-8 group">
+              <img 
+                src="/holyspirit-logo.svg" 
+                alt="Holy Spirit Logo" 
+                className="w-10 h-10 group-hover:rotate-12 transition-transform duration-500"
+              />
               <span className="text-3xl font-black tracking-tighter text-white uppercase">
                 HOLY<span className="text-neon">SPIRIT</span>
               </span>

@@ -1,9 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Shield } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { dbService, HolySettings } from '../db';
 
-// Added HeaderProps interface to fix type error in App.tsx
 interface HeaderProps {
   onAdminClick?: () => void;
 }
@@ -30,18 +28,19 @@ const Header: React.FC<HeaderProps> = ({ onAdminClick }) => {
 
   const handleLinkClick = (href: string) => {
     setIsOpen(false);
-    if (href === '#blog' && window.location.hash === '#eventos') {
-        // If clicking Blog but was on Eventos, force refresh or handle via state if needed
-    }
   };
 
   return (
     <nav className={`fixed w-full z-50 transition-all duration-500 ${scrolled ? 'py-4 bg-black/95 backdrop-blur-xl border-b border-white/5' : 'py-8 bg-transparent'}`}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between">
-          <a href="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 bg-neon rounded-lg rotate-12 group-hover:rotate-0 transition-transform duration-500 flex items-center justify-center shadow-[0_0_20px_rgba(207,236,15,0.3)]">
-              <Shield size={18} className="text-black fill-black" />
+          <a href="/" className="flex items-center gap-4 group">
+            <div className="w-10 h-10 transition-transform duration-500 group-hover:scale-110">
+              <img 
+                src="/holyspirit-logo.svg" 
+                alt="Holy Spirit Logo" 
+                className="w-full h-full drop-shadow-[0_0_10px_rgba(207,236,15,0.4)]"
+              />
             </div>
             <span className="text-2xl font-black tracking-tighter text-white uppercase italic">
               HOLY<span className="text-neon">SPIRIT</span>
