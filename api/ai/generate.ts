@@ -24,7 +24,7 @@ export default async function handler(req: Request) {
     const { prompt, category, source } = body;
 
     // URL fornecida pelo usuário (webhook-test)
-    const n8nWebhookUrl = "https://felipealmeida0777.app.n8n.cloud/webhook-test/blog-generator";
+    const n8nWebhookUrl = "https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator";
 
     // Criamos um Controller de Abort para não deixar a requisição pendente eternamente
     const controller = new AbortController();
