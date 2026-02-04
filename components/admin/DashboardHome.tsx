@@ -15,25 +15,33 @@ const DashboardHome: React.FC = () => {
 
   useEffect(() => {
     const loadDashboard = async () => {
-      setLoading(true);
       try {
+        // Carrega métricas primeiro (Rápido)
         const [auto, m] = await Promise.all([
           dbService.getAutomationSettings(),
           dbService.getMetrics()
         ]);
         setAutoSettings(auto);
         setMetrics(m);
-        
-        // Verifica o status chamando o teste de integração real
-        const aiTest = await aiService.testIntegration();
-        setAiStatus(aiTest.success ? 'online' : 'offline');
+        setLoading(false); // Libera a tela aqui
+
+        // Verifica a IA em segundo plano (Pode demorar)
+        checkAiStatus();
       } catch (err) {
         console.error("Dashboard error:", err);
-        setAiStatus('offline');
-      } finally {
         setLoading(false);
       }
     };
+
+    const checkAiStatus = async () => {
+      try {
+        const aiTest = await aiService.testIntegration();
+        setAiStatus(aiTest.success ? 'online' : 'offline');
+      } catch {
+        setAiStatus('offline');
+      }
+    };
+
     loadDashboard();
   }, []);
 
@@ -78,17 +86,25 @@ const DashboardHome: React.FC = () => {
           aiStatus === 'online' ? 'bg-blue-500/5 border-blue-500/20' : 'bg-red-500/5 border-red-500/20'
         }`}>
           <div className="flex items-center gap-6">
-             <div className={`p-4 rounded-2xl ${aiStatus === 'online' ? 'bg-blue-500 text-white' : 'bg-red-500 text-white'}`}>
+             <div className={`p-4 rounded-2xl ${
+               aiStatus === 'online' ? 'bg-blue-500 text-white' : 
+               aiStatus === 'checking' ? 'bg-zinc-800 text-zinc-400' : 'bg-red-500 text-white'
+             }`}>
                {aiStatus === 'checking' ? <Loader2 className="animate-spin" size={24} /> : <Zap size={24} />}
              </div>
              <div>
-               <h3 className="text-sm font-black uppercase tracking-widest">Motor IA (Backend Protegido)</h3>
-               <p className={`text-[10px] font-bold uppercase tracking-widest ${aiStatus === 'online' ? 'text-blue-400' : 'text-red-400'}`}>
-                 {aiStatus === 'online' ? 'Pronto para Criar' : 'Aguardando Configuração Vercel'}
+               <h3 className="text-sm font-black uppercase tracking-widest">Motor IA (Backend)</h3>
+               <p className={`text-[10px] font-bold uppercase tracking-widest ${
+                 aiStatus === 'online' ? 'text-blue-400' : 
+                 aiStatus === 'checking' ? 'text-zinc-500' : 'text-red-400'
+               }`}>
+                 {aiStatus === 'online' ? 'Sincronizado' : 
+                  aiStatus === 'checking' ? 'Validando Acesso...' : 'Erro de Configuração Vercel'}
                </p>
              </div>
           </div>
-          {aiStatus === 'online' ? <ShieldCheck className="text-blue-500" size={20} /> : <AlertTriangle className="text-red-500" size={20} />}
+          {aiStatus === 'online' && <ShieldCheck className="text-blue-500" size={20} />}
+          {aiStatus === 'offline' && <AlertTriangle className="text-red-500" size={20} />}
         </div>
       </div>
 
@@ -111,9 +127,11 @@ const DashboardHome: React.FC = () => {
             <Star size={20} className="text-neon" /> Insights Estratégicos
           </h2>
           <div className="p-6 bg-black/40 rounded-2xl border border-white/5 italic text-sm text-zinc-400 leading-relaxed">
-            {metrics?.postsCount && metrics.postsCount > 0 
-              ? "Seu Templo está ganhando autoridade. Continue postando para melhorar o SEO orgânico."
-              : "A IA está pronta para gerar seu primeiro conteúdo no servidor seguro."
+            {aiStatus === 'offline' 
+              ? "⚠️ O motor de IA não respondeu. Verifique se você cadastrou a chave com o nome 'API_KEY' nas configurações da Vercel e se fez um novo Deploy."
+              : metrics?.postsCount && metrics.postsCount > 0 
+                ? "Seu Templo está ganhando autoridade. Continue postando para melhorar o SEO orgânico."
+                : "A IA está pronta para gerar seu primeiro conteúdo no servidor seguro."
             }
           </div>
         </div>

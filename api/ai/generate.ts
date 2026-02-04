@@ -1,20 +1,41 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
+export const config = {
+  runtime: 'edge',
+};
+
 export default async function handler(req: Request) {
+  // CORS Headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json',
+  };
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers });
+  }
+
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });
   }
 
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const { prompt, config: userConfig } = body;
     const apiKey = process.env.API_KEY;
 
     if (!apiKey) {
+      console.error("API_KEY MISSING");
       return new Response(JSON.stringify({ 
-        error: 'Chave de API não encontrada. Certifique-se de que a variável "API_KEY" está configurada nas Environment Variables da Vercel.' 
-      }), { status: 500 });
+        error: 'Variável API_KEY não configurada na Vercel.' 
+      }), { status: 500, headers });
+    }
+
+    if (!prompt) {
+      return new Response(JSON.stringify({ error: 'Prompt vazio' }), { status: 400, headers });
     }
 
     const isOpenAI = apiKey.startsWith('sk-');
@@ -30,7 +51,7 @@ export default async function handler(req: Request) {
         body: JSON.stringify({
           model: userConfig?.model || 'gpt-3.5-turbo',
           messages: [
-            { role: 'system', content: 'Você é um estrategista de SEO Fitness. Se o usuário pedir um post, retorne JSON. Se for um teste, responda normalmente.' },
+            { role: 'system', content: 'Você é um estrategista de SEO Fitness para a Holy Spirit.' },
             { role: 'user', content: prompt }
           ],
           temperature: userConfig?.temperature || 0.7,
@@ -41,12 +62,9 @@ export default async function handler(req: Request) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error?.message || 'Erro na OpenAI');
       
-      return new Response(JSON.stringify(data.choices[0].message.content), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      const content = data.choices[0].message.content;
+      return new Response(JSON.stringify(content), { status: 200, headers });
     } else {
-      // Configuração para Google Gemini
       const ai = new GoogleGenAI({ apiKey });
       const modelName = userConfig?.model || 'gemini-3-flash-preview';
       
@@ -54,7 +72,6 @@ export default async function handler(req: Request) {
         temperature: userConfig?.temperature || 0.7,
       };
 
-      // Só aplica o Schema se for um pedido de blog para não quebrar o teste de conexão
       if (isBlogRequest) {
         generationConfig.responseMimeType = "application/json";
         generationConfig.responseSchema = {
@@ -74,23 +91,24 @@ export default async function handler(req: Request) {
 
       const response = await ai.models.generateContent({
         model: modelName,
-        contents: prompt,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
           ...generationConfig,
-          systemInstruction: "Você é um especialista em fitness para a academia Holy Spirit. Se solicitado um post, use o formato JSON de blog."
+          systemInstruction: "Você é um especialista em fitness para a academia Holy Spirit. Responda sempre no idioma do prompt."
         },
       });
 
-      return new Response(JSON.stringify(response.text), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      if (!response.text) {
+        throw new Error("A IA retornou uma resposta vazia.");
+      }
+
+      return new Response(JSON.stringify(response.text), { status: 200, headers });
     }
   } catch (error: any) {
-    console.error("Erro no Handler de IA:", error);
+    console.error("AI ROUTE ERROR:", error.message);
     return new Response(JSON.stringify({ 
-      error: error.message,
-      detail: "Verifique se a API_KEY é válida para o provedor escolhido."
-    }), { status: 500 });
+      error: error.message || 'Erro interno no processamento da IA',
+      status: 'error'
+    }), { status: 500, headers });
   }
 }
