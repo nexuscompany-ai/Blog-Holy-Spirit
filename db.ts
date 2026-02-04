@@ -11,11 +11,14 @@ const getEnv = (name: string) => {
 const supabaseUrl = getEnv('VITE_SUPABASE_URL') || 'https://xkapuhuuqqjmcxxrnpcf.supabase.co';
 const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY');
 
-// Cliente Supabase real (com chave mock se necessário para evitar crash inicial)
 export const supabase = createClient(supabaseUrl, supabaseKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy');
 
-// Flag para saber se estamos em modo demonstração
-const isDemoMode = !supabaseKey || supabaseKey === 'sua_chave_anonima_aqui' || supabaseKey === 'MISSING_ANON_KEY';
+const isDemoMode = !supabaseKey || supabaseKey === 'sua_chave_anonima_aqui' || supabaseKey === 'MISSING_ANON_KEY' || supabaseKey === 'MOCK_KEY';
+
+export interface AISettings {
+  model: string;
+  temperature: number;
+}
 
 export interface HolySettings {
   id?: string;
@@ -24,6 +27,7 @@ export interface HolySettings {
   instagram: string;
   address: string;
   website: string;
+  aiConfig?: AISettings;
 }
 
 export interface HolyEvent {
@@ -36,6 +40,9 @@ export interface HolyEvent {
   category: string;
   status: 'active' | 'inactive';
   image?: string;
+  whatsappEnabled?: boolean;
+  whatsappNumber?: string;
+  whatsappMessage?: string;
 }
 
 export interface AutomationSettings {
@@ -44,6 +51,13 @@ export interface AutomationSettings {
   frequency_days: number;
   topics: string;
   target_category: string;
+}
+
+export interface DashboardMetrics {
+  postsCount: number;
+  eventsCount: number;
+  activeEventsCount: number;
+  automationActive: boolean;
 }
 
 export const dbService = {
@@ -68,7 +82,6 @@ export const dbService = {
   },
 
   async getSession() {
-    // Prioridade para sessão demo se as chaves estiverem ausentes
     if (isDemoMode) {
       const saved = localStorage.getItem('holy_demo_session');
       return saved ? JSON.parse(saved) : null;
@@ -92,13 +105,30 @@ export const dbService = {
     window.location.href = '/';
   },
 
+  async getMetrics(): Promise<DashboardMetrics> {
+    const blogs = await this.getBlogs();
+    const events = await this.getEvents();
+    const automation = await this.getAutomationSettings();
+
+    return {
+      postsCount: blogs.length,
+      eventsCount: events.length,
+      activeEventsCount: events.filter(e => e.status === 'active').length,
+      automationActive: automation.enabled
+    };
+  },
+
   async getSettings(): Promise<HolySettings> {
-    const defaultSettings = {
+    const defaultSettings: HolySettings = {
       gymName: 'Holy Spirit Academia',
       phone: '(11) 99999-9999',
-      instagram: '@holyspirit.gym',
+      instagram: 'https://instagram.com/holyspirit.gym',
       address: 'Av. das Nações, 1000 - SP',
-      website: 'www.holyspiritgym.com.br'
+      website: 'www.holyspiritgym.com.br',
+      aiConfig: {
+        model: 'gemini-3-pro-preview',
+        temperature: 0.7
+      }
     };
 
     if (isDemoMode) {

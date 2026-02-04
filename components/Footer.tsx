@@ -1,11 +1,23 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Instagram, MapPin, MessageCircle, Lock, Phone } from 'lucide-react';
+import { dbService, HolySettings } from '../db';
 import Logo from './Logo';
 
 const Footer: React.FC = () => {
-  const settings = JSON.parse(localStorage.getItem('holy_settings') || '{"phone": "(11) 99999-9999", "instagram": "@holyspirit.gym", "address": "Av. das Nações, 1000 - SP"}');
-  const waLink = `https://wa.me/${settings.phone.replace(/\D/g, '')}`;
+  const [settings, setSettings] = useState<HolySettings | null>(null);
+
+  useEffect(() => {
+    dbService.getSettings().then(setSettings);
+  }, []);
+
+  const currentSettings = settings || {
+    phone: '(11) 99999-9999',
+    instagram: 'https://instagram.com/holyspirit.gym',
+    address: 'Av. das Nações, 1000 - SP'
+  };
+
+  const waLink = `https://wa.me/${currentSettings.phone.replace(/\D/g, '')}`;
 
   return (
     <footer className="bg-black pt-24 pb-12 border-t border-white/5">
@@ -22,10 +34,20 @@ const Footer: React.FC = () => {
               Corpos treinados, espíritos fortalecidos. Nossa missão é a excelência integral em honra ao Criador.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="p-4 bg-zinc-900 rounded-2xl text-gray-400 hover:text-neon transition-all hover:scale-110">
+              <a 
+                href={currentSettings.instagram} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="p-4 bg-zinc-900 rounded-2xl text-gray-400 hover:text-neon transition-all hover:scale-110"
+              >
                 <Instagram size={24} />
               </a>
-              <a href={waLink} className="p-4 bg-zinc-900 rounded-2xl text-gray-400 hover:text-neon transition-all hover:scale-110">
+              <a 
+                href={waLink} 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-4 bg-zinc-900 rounded-2xl text-gray-400 hover:text-neon transition-all hover:scale-110"
+              >
                 <MessageCircle size={24} />
               </a>
             </div>
@@ -36,11 +58,11 @@ const Footer: React.FC = () => {
             <div className="space-y-6">
               <p className="flex items-start gap-4 text-gray-500 text-sm">
                 <MapPin className="text-neon shrink-0" size={18} />
-                {settings.address}
+                {currentSettings.address}
               </p>
               <p className="flex items-center gap-4 text-gray-500 text-sm font-bold">
                 <Phone className="text-neon" size={18} />
-                {settings.phone}
+                {currentSettings.phone}
               </p>
             </div>
           </div>
