@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Save, Building, CheckCircle2, ShieldCheck, 
   Database, RefreshCw, Activity, Lock, AlertCircle,
-  Instagram, Settings as SettingsIcon, BrainCircuit, Zap, Loader2
+  Instagram, Settings as SettingsIcon, BrainCircuit, Zap, Loader2,
+  Globe, Info
 } from 'lucide-react';
 import { dbService, HolySettings } from '../../db';
 import { aiService } from '../../services/ai.service';
@@ -17,7 +18,6 @@ const SettingsPage: React.FC = () => {
     status: 'idle',
     message: ''
   });
-  const [diagnostic, setDiagnostic] = useState<any>(null);
 
   const [settings, setSettings] = useState<HolySettings>({
     gymName: '',
@@ -26,25 +26,17 @@ const SettingsPage: React.FC = () => {
     address: '',
     website: '',
     aiConfig: {
-      model: 'gemini-3-pro-preview',
-      temperature: 0.7
+      provider: 'gemini',
+      model: 'gemini-3-flash-preview',
+      temperature: 0.7,
+      baseUrl: ''
     }
   });
 
-  const checkHealth = async () => {
-    setDbStatus('loading');
-    try {
-      await new Promise(r => setTimeout(r, 500));
-      setDbStatus('online');
-      setDiagnostic({
-        engine: 'Conexão Direta via SDK',
-        latency: 'Local',
-        project_id: 'xkapuhuuqqjmcxxrnpcf'
-      });
-    } catch (err) {
-      setDbStatus('offline');
-    }
-  };
+  useEffect(() => {
+    dbService.getSettings().then(setSettings);
+    setDbStatus('online');
+  }, []);
 
   const testAI = async () => {
     setAiTestStatus({ loading: true, status: 'idle', message: '' });
@@ -55,11 +47,6 @@ const SettingsPage: React.FC = () => {
       message: result.message
     });
   };
-
-  useEffect(() => {
-    dbService.getSettings().then(setSettings);
-    checkHealth();
-  }, []);
 
   const handleSave = async () => {
     await dbService.saveSettings(settings);
@@ -80,7 +67,7 @@ const SettingsPage: React.FC = () => {
           onClick={() => setActiveTab('ai')}
           className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'ai' ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
         >
-          IA & Automação
+          IA & Provedores
         </button>
         <button 
           onClick={() => setActiveTab('infra')}
@@ -128,8 +115,8 @@ const SettingsPage: React.FC = () => {
             <div className="flex items-center gap-4">
               <div className="bg-neon/10 p-3 rounded-xl text-neon"><BrainCircuit size={24} /></div>
               <div>
-                <h2 className="text-2xl font-black uppercase italic">Configuração TEST API BLOG</h2>
-                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Motor de Inteligência Artificial</p>
+                <h2 className="text-2xl font-black uppercase italic">Motor de Inteligência</h2>
+                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Escolha seu Provedor de Elite</p>
               </div>
             </div>
             <button 
@@ -142,31 +129,34 @@ const SettingsPage: React.FC = () => {
               }`}
             >
               {aiTestStatus.loading ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} />}
-              {aiTestStatus.loading ? 'Testando...' : 'Testar Integração'}
+              {aiTestStatus.loading ? 'Testando...' : 'Testar Conexão'}
             </button>
           </div>
 
-          {aiTestStatus.message && (
-            <div className={`p-4 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-3 ${
-              aiTestStatus.status === 'success' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
-            }`}>
-              {aiTestStatus.status === 'success' ? <ShieldCheck size={16} /> : <AlertCircle size={16} />}
-              {aiTestStatus.message}
-            </div>
-          )}
-
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Modelo Padrão</label>
+              <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Provedor</label>
               <select 
-                value={settings.aiConfig?.model} 
-                onChange={e => setSettings({...settings, aiConfig: { ...settings.aiConfig!, model: e.target.value }})}
+                value={settings.aiConfig?.provider} 
+                onChange={e => setSettings({...settings, aiConfig: { ...settings.aiConfig!, provider: e.target.value as any }})}
                 className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-neon text-sm"
               >
-                <option value="gemini-3-pro-preview">Gemini 3 Pro (Alta Qualidade)</option>
-                <option value="gemini-3-flash-preview">Gemini 3 Flash (Alta Velocidade)</option>
+                <option value="gemini">Google Gemini (Gratuito/Billing)</option>
+                <option value="openai">OpenAI (ChatGPT/sk- key)</option>
+                <option value="custom">Provedor Customizado (DeepSeek, etc)</option>
               </select>
             </div>
+            
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Modelo</label>
+              <input 
+                value={settings.aiConfig?.model}
+                onChange={e => setSettings({...settings, aiConfig: { ...settings.aiConfig!, model: e.target.value }})}
+                placeholder={settings.aiConfig?.provider === 'gemini' ? 'gemini-3-flash-preview' : 'gpt-3.5-turbo'}
+                className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-neon text-sm"
+              />
+            </div>
+
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Criatividade ({settings.aiConfig?.temperature})</label>
               <input 
@@ -178,17 +168,33 @@ const SettingsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-8 bg-black/40 rounded-3xl border border-white/5">
-             <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Segurança de Produção</h4>
+          {settings.aiConfig?.provider !== 'gemini' && (
+             <div className="space-y-2 animate-in slide-in-from-top-2">
+                <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Base URL (Opcional)</label>
+                <div className="relative">
+                  <Globe className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-700" size={16} />
+                  <input 
+                    value={settings.aiConfig?.baseUrl}
+                    onChange={e => setSettings({...settings, aiConfig: { ...settings.aiConfig!, baseUrl: e.target.value }})}
+                    placeholder="https://api.openai.com/v1/chat/completions"
+                    className="w-full bg-black border border-white/10 rounded-2xl pl-14 pr-6 py-4 outline-none focus:border-neon text-sm placeholder:text-zinc-800"
+                  />
+                </div>
+             </div>
+          )}
+
+          <div className="p-8 bg-black/40 rounded-3xl border border-white/5 flex items-start gap-4">
+             <Info className="text-zinc-500 shrink-0" size={18} />
              <p className="text-[10px] text-zinc-600 font-bold uppercase leading-relaxed">
-               As chaves de API são gerenciadas via variáveis de ambiente do servidor (process.env.API_KEY). 
-               Para alterar o provedor, entre em contato com o suporte técnico.
+               O sistema detecta automaticamente o provedor com base na chave no arquivo .env. 
+               Se sua chave começa com <span className="text-neon">sk-</span>, usaremos o protocolo OpenAI. 
+               Se começa com <span className="text-neon">AIza</span>, usaremos o SDK nativo do Google.
              </p>
           </div>
 
           <div className="pt-8 border-t border-white/5 flex justify-end">
             <button onClick={handleSave} className="bg-neon text-black font-black px-12 py-5 rounded-2xl text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-neon/20">
-              <Save size={16} /> Salvar Configuração IA
+              <Save size={16} /> Consagrar Provedor
             </button>
           </div>
         </div>
@@ -201,7 +207,7 @@ const SettingsPage: React.FC = () => {
               <div className="p-4 bg-black rounded-2xl text-green-400"><Database size={32} /></div>
               <div>
                 <h3 className="text-xl font-black uppercase italic">Banco de Dados Sincronizado</h3>
-                <p className="text-[10px] text-gray-500 uppercase font-black">Latência: {diagnostic?.latency} • Supabase Global</p>
+                <p className="text-[10px] text-gray-500 uppercase font-black">Supabase Global Ativo</p>
               </div>
             </div>
           </div>

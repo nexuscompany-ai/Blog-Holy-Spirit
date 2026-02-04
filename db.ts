@@ -16,8 +16,10 @@ export const supabase = createClient(supabaseUrl, supabaseKey || 'eyJhbGciOiJIUz
 const isDemoMode = !supabaseKey || supabaseKey === 'sua_chave_anonima_aqui' || supabaseKey === 'MISSING_ANON_KEY' || supabaseKey === 'MOCK_KEY';
 
 export interface AISettings {
+  provider: 'gemini' | 'openai' | 'custom';
   model: string;
   temperature: number;
+  baseUrl?: string;
 }
 
 export interface HolySettings {
@@ -70,12 +72,14 @@ export const dbService = {
       return mockSession;
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    // Use type assertion to avoid property missing error on SupabaseAuthClient
+    const { data, error } = await (supabase.auth as any).signInWithPassword({ email, password: pass });
     if (error) throw error;
     
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
     if (profile?.role !== 'admin') {
-      await supabase.auth.signOut();
+      // Use type assertion to avoid property missing error on SupabaseAuthClient
+      await (supabase.auth as any).signOut();
       throw new Error('Acesso restrito a administradores.');
     }
     return { ...data, role: profile.role };
@@ -87,7 +91,8 @@ export const dbService = {
       return saved ? JSON.parse(saved) : null;
     }
     
-    const { data: { session } } = await supabase.auth.getSession();
+    // Use type assertion to avoid property missing error on SupabaseAuthClient
+    const { data: { session } } = await (supabase.auth as any).getSession();
     if (!session) return null;
     try {
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
@@ -100,7 +105,8 @@ export const dbService = {
   async signOut() {
     localStorage.removeItem('holy_demo_session');
     if (!isDemoMode) {
-      await supabase.auth.signOut();
+      // Use type assertion to avoid property missing error on SupabaseAuthClient
+      await (supabase.auth as any).signOut();
     }
     window.location.href = '/';
   },
@@ -126,7 +132,8 @@ export const dbService = {
       address: 'Av. das Nações, 1000 - SP',
       website: 'www.holyspiritgym.com.br',
       aiConfig: {
-        model: 'gemini-3-pro-preview',
+        provider: 'gemini',
+        model: 'gemini-3-flash-preview',
         temperature: 0.7
       }
     };

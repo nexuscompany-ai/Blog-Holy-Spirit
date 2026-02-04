@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
-import WhyUs from '../components/WhyUs';
+import WhyUs from '../../components/WhyUs';
 import BlogSection from '../components/BlogSection';
 import CTABanner from '../components/CTABanner';
 import Footer from '../components/Footer';
@@ -39,7 +39,8 @@ export default function Home() {
 
     fetchSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+    // Use type assertion to avoid property missing error on SupabaseAuthClient
+    const { data: authListener } = (supabase.auth as any).onAuthStateChange(async (event: any, currentSession: any) => {
       if (!isMounted.current) return;
       if (currentSession) {
         const profile = await dbService.getSession();
