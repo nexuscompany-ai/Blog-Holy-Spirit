@@ -13,7 +13,8 @@ const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY');
 
 export const supabase = createClient(supabaseUrl, supabaseKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy');
 
-const isDemoMode = !supabaseKey || supabaseKey === 'sua_chave_anonima_aqui' || supabaseKey === 'MISSING_ANON_KEY' || supabaseKey === 'MOCK_KEY';
+// O modo Demo só é ativado se a chave real não existir
+const isDemoMode = !supabaseKey || supabaseKey.includes('sua_chave') || supabaseKey === 'MISSING_ANON_KEY';
 
 export interface AISettings {
   provider: 'gemini' | 'openai' | 'custom';
@@ -65,21 +66,17 @@ export interface DashboardMetrics {
 export const dbService = {
   async login(email: string, pass: string) {
     if (isDemoMode) {
-      console.warn("Holy Spirit Admin: Modo de Demonstração Ativo.");
-      await new Promise(r => setTimeout(r, 600));
       const mockSession = { user: { id: 'demo-user', email }, role: 'admin' };
       localStorage.setItem('holy_demo_session', JSON.stringify(mockSession));
       return mockSession;
     }
 
-    // Use type assertion to avoid property missing error on SupabaseAuthClient
-    const { data, error } = await (supabase.auth as any).signInWithPassword({ email, password: pass });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
     
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
     if (profile?.role !== 'admin') {
-      // Use type assertion to avoid property missing error on SupabaseAuthClient
-      await (supabase.auth as any).signOut();
+      await supabase.auth.signOut();
       throw new Error('Acesso restrito a administradores.');
     }
     return { ...data, role: profile.role };
@@ -91,8 +88,7 @@ export const dbService = {
       return saved ? JSON.parse(saved) : null;
     }
     
-    // Use type assertion to avoid property missing error on SupabaseAuthClient
-    const { data: { session } } = await (supabase.auth as any).getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) return null;
     try {
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
@@ -105,8 +101,7 @@ export const dbService = {
   async signOut() {
     localStorage.removeItem('holy_demo_session');
     if (!isDemoMode) {
-      // Use type assertion to avoid property missing error on SupabaseAuthClient
-      await (supabase.auth as any).signOut();
+      await supabase.auth.signOut();
     }
     window.location.href = '/';
   },
@@ -130,12 +125,7 @@ export const dbService = {
       phone: '(11) 99999-9999',
       instagram: 'https://instagram.com/holyspirit.gym',
       address: 'Av. das Nações, 1000 - SP',
-      website: 'www.holyspiritgym.com.br',
-      aiConfig: {
-        provider: 'gemini',
-        model: 'gemini-3-flash-preview',
-        temperature: 0.7
-      }
+      website: 'www.holyspiritgym.com.br'
     };
 
     if (isDemoMode) {
