@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
-import WhyUs from '../../components/WhyUs';
+import WhyUs from '../components/WhyUs';
 import BlogSection from '../components/BlogSection';
 import CTABanner from '../components/CTABanner';
 import Footer from '../components/Footer';
