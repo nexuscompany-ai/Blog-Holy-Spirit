@@ -62,7 +62,7 @@ export const aiService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: "Responda apenas com a palavra: OK",
-          config: { model: 'gemini-3-flash-preview', temperature: 0 }
+          config: { model: '', temperature: 0 }
         })
       });
 
