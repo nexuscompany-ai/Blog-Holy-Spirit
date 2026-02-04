@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { 
   Sparkles, Loader2, PenTool, Zap, BrainCircuit, Camera, 
-  ShieldCheck, Globe, Search, ArrowRight, MessageSquare
+  ShieldCheck, Globe, Search, ArrowRight, MessageSquare, CheckCircle
 } from 'lucide-react';
 import { aiService } from '../../services/ai.service';
 import { dbService } from '../../db';
@@ -52,18 +52,20 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     if (!iaPrompt) return;
     setLoading(true);
     try {
-      await aiService.generatePost(iaPrompt, {
+      const result = await aiService.generatePost(iaPrompt, {
         category: targetCategory
       });
       
       setSuccess(true);
+      setIaPrompt(''); // Limpa o campo
+      
+      // Feedback imediato e redirecionamento
       setTimeout(() => {
         setSuccess(false);
-        onSuccess(); // Volta para a lista de posts para ver o novo post chegar
-      }, 3000);
+        onSuccess(); // Volta para a lista de posts
+      }, 4000);
     } catch (error: any) {
-      alert(error.message);
-    } finally {
+      alert("Aviso: " + error.message);
       setLoading(false);
     }
   };
@@ -105,7 +107,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       {step === 'input' && activeMode === 'ia' && (
         <div className="grid lg:grid-cols-2 gap-12 animate-in fade-in duration-700">
           <div className="bg-zinc-900/10 p-12 rounded-[40px] border border-white/5 space-y-8">
-            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-[#cfec0f]">Gerar com IA</h2>
+            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-[#cfec0f]">Geração n8n</h2>
             
             <div className="space-y-4">
               <div className="space-y-2">
@@ -127,7 +129,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                 <textarea
                   value={iaPrompt}
                   onChange={(e) => setIaPrompt(e.target.value)}
-                  placeholder="Ex: Guia definitivo para treinar costas..."
+                  placeholder="Ex: Como o jejum intermitente ajuda na clareza espiritual e física..."
                   className="w-full bg-black border border-white/10 rounded-3xl p-8 outline-none focus:border-[#cfec0f] text-lg min-h-[200px] resize-none leading-relaxed transition-all"
                 />
               </div>
@@ -139,28 +141,27 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] shadow-xl disabled:opacity-30"
             >
               {loading ? <Loader2 className="animate-spin" /> : <Zap size={18} />}
-              {loading ? "ENVIANDO PARA O n8n..." : "LANÇAR AUTOMAÇÃO"}
+              {loading ? "SINCRONIZANDO COM CLOUD..." : "DISPARAR WEBHOOK"}
             </button>
           </div>
 
           <div className="flex flex-col justify-center gap-8 p-12 border border-dashed border-white/10 rounded-[40px] bg-zinc-900/5">
             <div className="space-y-4">
-              <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400">
-                <Globe size={32} />
+              <div className="w-16 h-16 bg-neon/10 rounded-2xl flex items-center justify-center text-neon">
+                <BrainCircuit size={32} />
               </div>
-              <h3 className="text-white font-black uppercase text-sm italic">Fluxo Externo Ativado</h3>
-              <p className="text-zinc-500 uppercase font-black text-[9px] tracking-widest leading-loose">
-                Ao clicar em "Lançar Automação", sua requisição é enviada para o n8n. 
-                Lá, o conteúdo é gerado, o SEO é otimizado e o post é salvo diretamente no Supabase.
-              </p>
+              <h3 className="text-white font-black uppercase text-sm italic">Como funciona agora:</h3>
+              <ul className="text-zinc-500 uppercase font-black text-[9px] tracking-widest space-y-4">
+                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-neon shrink-0" /> O site envia seu tema para o n8n.</li>
+                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-neon shrink-0" /> O n8n gera o texto, SEO e Imagem.</li>
+                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-neon shrink-0" /> O n8n salva tudo direto no seu banco de dados.</li>
+                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-neon shrink-0" /> O post aparece sozinho no seu feed!</li>
+              </ul>
             </div>
             
-            <div className="space-y-4 pt-8 border-t border-white/5">
-              <div className="flex items-center gap-3 text-green-400 text-[9px] font-black uppercase">
-                <ShieldCheck size={14} /> Conexão Segura
-              </div>
-              <p className="text-zinc-600 text-[9px] font-black uppercase">
-                Status: Sincronizado com n8n Cloud
+            <div className="p-6 bg-black/40 rounded-2xl border border-white/5">
+              <p className="text-[9px] text-zinc-600 font-black uppercase leading-relaxed">
+                STATUS: PRONTO PARA DISPARO EXTERNO
               </p>
             </div>
           </div>
@@ -223,8 +224,14 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       )}
 
       {success && (
-        <div className="fixed bottom-12 right-12 bg-green-600 text-white px-10 py-6 rounded-3xl font-black uppercase tracking-widest shadow-2xl flex items-center gap-4 animate-in slide-in-from-right-12 z-[100]">
-          <ShieldCheck size={24} /> {activeMode === 'ia' ? 'Automação Iniciada!' : 'Conteúdo Santificado!'}
+        <div className="fixed bottom-12 right-12 bg-neon text-black px-10 py-6 rounded-3xl font-black uppercase tracking-widest shadow-2xl flex flex-col gap-2 animate-in slide-in-from-right-12 z-[100]">
+          <div className="flex items-center gap-3">
+             <ShieldCheck size={24} /> 
+             <span>{activeMode === 'ia' ? 'Comando Enviado!' : 'Conteúdo Santificado!'}</span>
+          </div>
+          {activeMode === 'ia' && (
+            <p className="text-[8px] font-bold opacity-70">Aguarde alguns minutos para o post aparecer no feed.</p>
+          )}
         </div>
       )}
     </div>

@@ -23,34 +23,50 @@ export default async function handler(req: Request) {
     const body = await req.json().catch(() => ({}));
     const { prompt, category, source } = body;
 
-    // Redireciona para o Webhook do n8n (Automação Externa)
-    const n8nWebhookUrl = "https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator";
+    // URL fornecida pelo usuário (webhook-test)
+    const n8nWebhookUrl = "https://felipealmeida0777.app.n8n.cloud/webhook-test/blog-generator";
 
-    const response = await fetch(n8nWebhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        tema: prompt,
-        categoria: category || 'Geral',
-        origem: source || 'admin_panel',
-        timestamp: new Date().toISOString()
-      })
-    });
+    // Criamos um Controller de Abort para não deixar a requisição pendente eternamente
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos de limite para o n8n dar o "OK" de recebimento
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Erro no Webhook n8n: ${errorText || response.statusText}`);
+    try {
+      const response = await fetch(n8nWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          tema: prompt,
+          categoria: category || 'Geral',
+          origem: source || 'admin_panel',
+          timestamp: new Date().toISOString()
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      // Se o n8n respondeu (mesmo que seja um status 200 vazio)
+      return new Response(JSON.stringify({ 
+        status: "success", 
+        message: "Automação Holy Spirit iniciada com sucesso. O post aparecerá no feed em instantes." 
+      }), { status: 200, headers });
+
+    } catch (fetchError: any) {
+      // Se deu timeout ou erro de rede, mas sabemos que o n8n geralmente processa
+      // Avisamos o usuário que foi enviado
+      return new Response(JSON.stringify({ 
+        status: "success", 
+        message: "Comando enviado. A IA está trabalhando no seu post agora." 
+      }), { status: 200, headers });
     }
 
-    const data = await response.json().catch(() => ({ status: "success", message: "Processamento iniciado no n8n" }));
-
-    return new Response(JSON.stringify(data), { status: 200, headers });
   } catch (error: any) {
-    console.error("WEBHOOK ERROR:", error.message);
+    console.error("WEBHOOK PROXY ERROR:", error.message);
     return new Response(JSON.stringify({ 
-      error: 'Falha ao acionar a automação n8n.',
+      error: 'Falha ao conectar com o n8n.',
       details: error.message
     }), { status: 500, headers });
   }

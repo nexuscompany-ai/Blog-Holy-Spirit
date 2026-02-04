@@ -1,19 +1,9 @@
 
-export interface GeneratedPost {
-  title: string;
-  excerpt: string;
-  content: string;
-  category: string;
-  seo_keywords: string[];
-  meta_description: string;
-  slug_suggestion: string;
-}
-
 export const aiService = {
   /**
    * Dispara o fluxo de automação no n8n via nosso proxy de API
    */
-  async generatePost(prompt: string, config: { category: string }): Promise<any> {
+  async generatePost(prompt: string, config: { category: string }): Promise<{ status: string; message: string }> {
     try {
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
@@ -28,7 +18,7 @@ export const aiService = {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erro na comunicação com o n8n.');
+        throw new Error(data.error || 'Erro ao acionar automação.');
       }
 
       return data;
@@ -54,13 +44,12 @@ export const aiService = {
       });
 
       if (response.ok) {
-        return { success: true, message: "Webhook n8n Online." };
+        return { success: true, message: "n8n Cloud Sincronizado" };
       }
       
-      const err = await response.json();
-      return { success: false, message: err.error || "Webhook n8n Offline." };
+      return { success: false, message: "n8n não respondeu" };
     } catch (error: any) {
-      return { success: false, message: "Erro de rede com n8n." };
+      return { success: false, message: "Erro de rede com n8n" };
     }
   }
 };
