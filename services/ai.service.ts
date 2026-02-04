@@ -13,10 +13,11 @@ export interface GeneratedPost {
 
 export const aiService = {
   /**
-   * Inicializa o cliente GenAI usando a chave de ambiente segura.
+   * Inicializa o cliente GenAI.
+   * A API_KEY deve estar disponível via process.env.API_KEY.
    */
   getClient() {
-    return new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    return new GoogleGenAI({ apiKey: process.env.API_KEY });
   },
 
   /**
@@ -24,17 +25,25 @@ export const aiService = {
    */
   async testIntegration(): Promise<{ success: boolean; message: string }> {
     try {
-      if (!process.env.API_KEY) {
-        return { success: false, message: "Chave de integração ausente no servidor." };
+      const apiKey = process.env.API_KEY;
+      if (!apiKey || apiKey.includes('sua_chave')) {
+        return { success: false, message: "Chave não configurada. Certifique-se de que o arquivo se chama '.env' (não .env.example) e reinicie o servidor." };
       }
+
       const ai = this.getClient();
+      // Teste simples de geração
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: "responder apenas 'ok'",
+        contents: "Diga 'Conexão OK'",
       });
-      return { success: true, message: "Integração TEST API BLOG ativa e respondendo." };
+      
+      if (response.text) {
+        return { success: true, message: "Integração TEST API BLOG ativa: " + response.text };
+      }
+      return { success: false, message: "A API respondeu, mas sem conteúdo." };
     } catch (error: any) {
-      return { success: false, message: error.message || "Erro desconhecido na integração." };
+      console.error("AI Service Error:", error);
+      return { success: false, message: "Erro na API: " + (error.message || "Verifique se a chave é válida e tem permissões.") };
     }
   },
 
@@ -56,23 +65,19 @@ export const aiService = {
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            title: { type: Type.STRING, description: "Título otimizado para SEO (H1)" },
-            excerpt: { type: Type.STRING, description: "Resumo chamativo para o card" },
-            content: { type: Type.STRING, description: "Conteúdo completo com Markdown" },
-            category: { type: Type.STRING, description: "Uma destas: Musculação, Nutrição, Espiritualidade, Lifestyle" },
-            seo_keywords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Lista de 5 palavras-chave LSI" },
-            meta_description: { type: Type.STRING, description: "Meta description de max 160 caracteres" },
-            slug_suggestion: { type: Type.STRING, description: "URL amigável (ex: como-ganhar-massa)" }
+            title: { type: Type.STRING },
+            excerpt: { type: Type.STRING },
+            content: { type: Type.STRING },
+            category: { type: Type.STRING },
+            seo_keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+            meta_description: { type: Type.STRING },
+            slug_suggestion: { type: Type.STRING }
           },
           required: ["title", "excerpt", "content", "category", "seo_keywords", "meta_description", "slug_suggestion"]
         }
       }
     });
 
-    try {
-      return JSON.parse(response.text || '{}');
-    } catch (e) {
-      throw new Error("Falha ao processar resposta da IA.");
-    }
+    return JSON.parse(response.text || '{}');
   }
 };
