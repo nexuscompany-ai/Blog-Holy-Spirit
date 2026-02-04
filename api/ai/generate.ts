@@ -5,98 +5,96 @@ export const config = {
 const DEFAULT_N8N_WEBHOOK_URL =
   'https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator';
 
-export default async function handler(req: Request) {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
-  };
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Accept',
+  'Content-Type': 'application/json',
+};
 
-  // Preflight CORS
+export default async function handler(req: Request): Promise<Response> {
+  // CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers });
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
   }
 
-  // Apenas POST
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers }
+      { status: 405, headers: corsHeaders }
     );
   }
+
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(
+      JSON.stringify({ error: 'JSON inválido' }),
+      { status: 400, headers: corsHeaders }
+    );
+  }
+
+  const { prompt, category, source } = body;
+
+  if (!prompt || typeof prompt !== 'string') {
+    return new Response(
+      JSON.stringify({ error: 'Campo "prompt" é obrigatório' }),
+      { status: 400, headers: corsHeaders }
+    );
+  }
+
+  const webhookUrl =
+    process.env.N8N_WEBHOOK_URL || DEFAULT_N8N_WEBHOOK_URL;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const { prompt, category, source } = body;
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        tema: prompt,
+        categoria: category ?? 'Geral',
+        origem: source ?? 'admin_panel',
+        created_at: new Date().toISOString(),
+      }),
+      signal: controller.signal,
+    });
 
-    if (typeof prompt !== 'string' || !prompt.trim()) {
-      return new Response(
-        JSON.stringify({ error: 'Campo "prompt" é obrigatório.' }),
-        { status: 400, headers }
-      );
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`n8n respondeu ${res.status}: ${text}`);
     }
 
-    const n8nWebhookUrl =
-      process.env.N8N_WEBHOOK_URL || DEFAULT_N8N_WEBHOOK_URL;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    try {
-      const response = await fetch(n8nWebhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          tema: prompt,
-          categoria: category || 'Geral',
-          origem: source || 'admin_panel',
-          timestamp: new Date().toISOString(),
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        throw new Error(
-          `Webhook n8n respondeu ${response.status}: ${errorText}`
-        );
-      }
-
-      return new Response(
-        JSON.stringify({
-          status: 'success',
-          message: 'Comando enviado com sucesso ao n8n.',
-        }),
-        { status: 200, headers }
-      );
-    } catch (err: any) {
-      // Timeout proposital (processamento em background)
-      if (err.name === 'AbortError') {
-        return new Response(
-          JSON.stringify({
-            status: 'success',
-            message:
-              'Automação disparada. O n8n está processando em segundo plano.',
-          }),
-          { status: 200, headers }
-        );
-      }
-
-      throw err;
-    }
-  } catch (error: any) {
     return new Response(
       JSON.stringify({
-        error: 'Erro na conexão com n8n.',
-        details: error?.message || 'Erro desconhecido',
+        status: 'ok',
+        message: 'Automação enviada para o n8n',
       }),
-      { status: 500, headers }
+      { status: 200, headers: corsHeaders }
     );
-  }
-}
+  } catch (err: any) {
+    // timeout esperado (n8n processa em background)
+    if (err?.name === 'AbortError') {
+      return new Response(
+        JSON.stringify({
+          status: 'ok',
+          message: 'Workflow disparado. Processando em segundo plano.',
+        }),
+        { status: 200, headers: corsHeaders }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        error: 'Erro ao conectar com o
