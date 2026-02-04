@@ -50,10 +50,13 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     if (!iaPrompt) return;
     setLoading(true);
     try {
+      // Busca configurações reais para saber qual motor usar
       const settings = await dbService.getSettings();
       const result = await aiService.generatePost(iaPrompt, {
-        model: settings.aiConfig?.model || 'gemini-3-pro-preview',
-        temperature: settings.aiConfig?.temperature || 0.7
+        provider: settings.aiConfig?.provider,
+        model: settings.aiConfig?.model || 'gemini-3-flash-preview',
+        temperature: settings.aiConfig?.temperature || 0.7,
+        baseUrl: settings.aiConfig?.baseUrl
       });
       
       setArticleData(prev => ({ 
@@ -63,7 +66,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       }));
       setStep('editing');
     } catch (error: any) {
-      alert("Erro na TEST API BLOG: " + error.message);
+      alert(error.message);
     } finally {
       setLoading(false);
     }
@@ -119,14 +122,14 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] shadow-xl disabled:opacity-30"
             >
               {loading ? <Loader2 className="animate-spin" /> : <Zap size={18} />}
-              {loading ? "GERANDO ARTIGO & SEO..." : "CRIAR COM TEST API BLOG"}
+              {loading ? "PROCESSANDO INTELIGÊNCIA..." : "GERAR COM IA"}
             </button>
           </div>
           <div className="flex flex-col justify-center items-center text-center p-12 border border-dashed border-white/10 rounded-[40px] bg-zinc-900/5">
             <Globe size={64} className="text-zinc-800 mb-6" />
             <h3 className="text-zinc-400 font-black uppercase text-sm mb-4">Automação de SEO</h3>
             <p className="text-gray-600 uppercase font-black text-[9px] tracking-widest leading-loose max-w-xs">
-              Ao gerar o texto, a IA automaticamente criará a Meta-Description, Slugs amigáveis e palavras-chave LSI para garantir indexação no Google.
+              Nossa IA gera automaticamente Meta-Description, Slugs amigáveis e palavras-chave LSI para garantir que seu templo domine o Google.
             </p>
           </div>
         </div>
@@ -144,7 +147,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               />
             </div>
             <div className="space-y-2">
-               <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-4">Conteúdo Dinâmico</label>
+               <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-4">Conteúdo do Blog</label>
                <textarea 
                 value={articleData.content} 
                 onChange={e => setArticleData({...articleData, content: e.target.value})} 
@@ -154,7 +157,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
           </div>
 
           <div className="space-y-8">
-            {/* Bloco SEO Automatizado */}
             <div className="bg-neon/5 p-8 rounded-[40px] border border-neon/10 space-y-6">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-[#cfec0f] flex items-center gap-2">
                 <Search size={12} /> Inteligência SEO
@@ -170,7 +172,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">URL (Slug Sugerido)</label>
+                  <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Slug da URL</label>
                   <input 
                     value={articleData.slug_suggestion}
                     onChange={e => setArticleData({...articleData, slug_suggestion: e.target.value})}
@@ -206,7 +208,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                 className="w-full bg-[#cfec0f] text-black font-black py-5 rounded-2xl text-[10px] uppercase tracking-widest hover:scale-[1.02] shadow-xl disabled:opacity-30 flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 className="animate-spin" size={14} /> : <ShieldCheck size={14} />}
-                {loading ? "PUBLICANDO..." : "PUBLICAR AGORA"}
+                {loading ? "PUBLICANDO..." : "PUBLICAR NO TEMPLO"}
               </button>
             </div>
           </div>
@@ -215,7 +217,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
 
       {success && (
         <div className="fixed bottom-12 right-12 bg-green-600 text-white px-10 py-6 rounded-3xl font-black uppercase tracking-widest shadow-2xl flex items-center gap-4 animate-in slide-in-from-right-12 z-[100]">
-          <ShieldCheck size={24} /> Templo Atualizado com Sucesso!
+          <ShieldCheck size={24} /> Conteúdo Santificado!
         </div>
       )}
     </div>
