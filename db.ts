@@ -11,10 +11,10 @@ const getEnv = (name: string) => {
 const supabaseUrl = getEnv('VITE_SUPABASE_URL') || 'https://xkapuhuuqqjmcxxrnpcf.supabase.co';
 const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY');
 
-// Cliente Supabase real
-export const supabase = createClient(supabaseUrl, supabaseKey || 'MOCK_KEY');
+// Cliente Supabase real (com chave mock se necessário para evitar crash inicial)
+export const supabase = createClient(supabaseUrl, supabaseKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy');
 
-// Flag para saber se estamos em modo demonstração (sem chaves válidas)
+// Flag para saber se estamos em modo demonstração
 const isDemoMode = !supabaseKey || supabaseKey === 'sua_chave_anonima_aqui' || supabaseKey === 'MISSING_ANON_KEY';
 
 export interface HolySettings {
@@ -38,7 +38,6 @@ export interface HolyEvent {
   image?: string;
 }
 
-// Added missing AutomationSettings interface to fix export errors in components/admin/DashboardHome.tsx and components/admin/ManageAutomation.tsx
 export interface AutomationSettings {
   id?: string;
   enabled: boolean;
@@ -50,9 +49,8 @@ export interface AutomationSettings {
 export const dbService = {
   async login(email: string, pass: string) {
     if (isDemoMode) {
-      console.warn("Entrando em Modo de Demonstração (Chaves Supabase não configuradas)");
-      // Simula um delay de rede
-      await new Promise(r => setTimeout(r, 800));
+      console.warn("Holy Spirit Admin: Modo de Demonstração Ativo.");
+      await new Promise(r => setTimeout(r, 600));
       const mockSession = { user: { id: 'demo-user', email }, role: 'admin' };
       localStorage.setItem('holy_demo_session', JSON.stringify(mockSession));
       return mockSession;
@@ -70,10 +68,12 @@ export const dbService = {
   },
 
   async getSession() {
+    // Prioridade para sessão demo se as chaves estiverem ausentes
     if (isDemoMode) {
       const saved = localStorage.getItem('holy_demo_session');
       return saved ? JSON.parse(saved) : null;
     }
+    
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return null;
     try {
@@ -85,9 +85,8 @@ export const dbService = {
   },
 
   async signOut() {
-    if (isDemoMode) {
-      localStorage.removeItem('holy_demo_session');
-    } else {
+    localStorage.removeItem('holy_demo_session');
+    if (!isDemoMode) {
       await supabase.auth.signOut();
     }
     window.location.href = '/';
@@ -135,7 +134,7 @@ export const dbService = {
   async saveBlog(post: any) {
     if (isDemoMode) {
       const current = await this.getBlogs();
-      const newPost = { ...post, id: Date.now().toString(), createdAt: new Date().toISOString() };
+      const newPost = { ...post, id: Math.random().toString(36).substr(2, 9), createdAt: new Date().toISOString() };
       localStorage.setItem('holy_blogs', JSON.stringify([newPost, ...current]));
       return;
     }
@@ -187,7 +186,6 @@ export const dbService = {
     await supabase.from('events').delete().eq('id', id);
   },
 
-  // Fixed return type and ensured consistency with the new AutomationSettings interface
   async getAutomationSettings(): Promise<AutomationSettings> {
     const defaults: AutomationSettings = { enabled: false, frequency_days: 3, topics: '', target_category: 'Musculação' };
     if (isDemoMode) {
@@ -198,7 +196,6 @@ export const dbService = {
     return data || defaults;
   },
 
-  // Added type for parameters to match the new AutomationSettings interface
   async saveAutomationSettings(settings: AutomationSettings) {
     if (isDemoMode) {
       localStorage.setItem('holy_automation', JSON.stringify(settings));

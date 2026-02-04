@@ -18,6 +18,17 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const isMounted = useRef(true);
 
+  const fetchSession = async () => {
+    try {
+      const sess = await dbService.getSession();
+      if (isMounted.current) setSession(sess);
+    } catch (err) {
+      console.error("Auth initialization failed:", err);
+    } finally {
+      if (isMounted.current) setLoading(false);
+    }
+  };
+
   useEffect(() => {
     isMounted.current = true;
 
@@ -26,18 +37,7 @@ export default function Home() {
     };
     window.addEventListener('popstate', handleLocationChange);
 
-    const fetchInitialSession = async () => {
-      try {
-        const sess = await dbService.getSession();
-        if (isMounted.current) setSession(sess);
-      } catch (err) {
-        console.error("Auth initialization failed:", err);
-      } finally {
-        if (isMounted.current) setLoading(false);
-      }
-    };
-
-    fetchInitialSession();
+    fetchSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!isMounted.current) return;
@@ -45,7 +45,9 @@ export default function Home() {
         const profile = await dbService.getSession();
         setSession(profile);
       } else {
-        setSession(null);
+        // No modo demo, não limpamos se houver sessão manual
+        const demoSess = localStorage.getItem('holy_demo_session');
+        if (!demoSess) setSession(null);
       }
     });
 
@@ -62,6 +64,12 @@ export default function Home() {
     window.scrollTo(0, 0);
   };
 
+  const handleLoginSuccess = async () => {
+    // Re-busca a sessão imediatamente após o login bem-sucedido
+    await fetchSession();
+    navigate('/admin');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -76,7 +84,7 @@ export default function Home() {
   // Admin Route Protection
   if (path.startsWith('/admin')) {
     if (!session || session.role !== 'admin') {
-      return <Login onLoginSuccess={() => navigate('/admin')} />;
+      return <Login onLoginSuccess={handleLoginSuccess} />;
     }
     return <AdminLayout exitAdmin={() => navigate('/')} />;
   }
