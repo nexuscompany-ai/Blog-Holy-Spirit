@@ -3,14 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   Save, Building, CheckCircle2, ShieldCheck, 
   Database, RefreshCw, Activity, Lock, AlertCircle,
-  Instagram, Settings as SettingsIcon, BrainCircuit, Zap, Loader2,
-  Globe, Info
+  Instagram, Settings as SettingsIcon, Zap, Loader2,
+  Globe, Info, MessageSquare
 } from 'lucide-react';
 import { dbService, HolySettings } from '../../db';
 import { aiService } from '../../services/ai.service';
 
 const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'general' | 'ai' | 'infra'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'automation' | 'infra'>('general');
   const [success, setSuccess] = useState(false);
   const [dbStatus, setDbStatus] = useState<'loading' | 'online' | 'offline'>('loading');
   const [aiTestStatus, setAiTestStatus] = useState<{ loading: boolean; status: 'idle' | 'success' | 'error'; message: string }>({
@@ -24,13 +24,7 @@ const SettingsPage: React.FC = () => {
     phone: '',
     instagram: '',
     address: '',
-    website: '',
-    aiConfig: {
-      provider: 'gemini',
-      model: 'gemini-3-flash-preview',
-      temperature: 0.7,
-      baseUrl: ''
-    }
+    website: ''
   });
 
   useEffect(() => {
@@ -38,7 +32,7 @@ const SettingsPage: React.FC = () => {
     setDbStatus('online');
   }, []);
 
-  const testAI = async () => {
+  const testWebhook = async () => {
     setAiTestStatus({ loading: true, status: 'idle', message: '' });
     const result = await aiService.testIntegration();
     setAiTestStatus({
@@ -64,10 +58,10 @@ const SettingsPage: React.FC = () => {
           Geral
         </button>
         <button 
-          onClick={() => setActiveTab('ai')}
-          className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'ai' ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
+          onClick={() => setActiveTab('automation')}
+          className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'automation' ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
         >
-          IA & Provedores
+          Automação
         </button>
         <button 
           onClick={() => setActiveTab('infra')}
@@ -109,18 +103,18 @@ const SettingsPage: React.FC = () => {
         </div>
       )}
 
-      {activeTab === 'ai' && (
+      {activeTab === 'automation' && (
         <div className="bg-zinc-900/10 p-12 rounded-[40px] border border-white/5 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="bg-neon/10 p-3 rounded-xl text-neon"><BrainCircuit size={24} /></div>
+              <div className="bg-neon/10 p-3 rounded-xl text-neon"><Zap size={24} /></div>
               <div>
-                <h2 className="text-2xl font-black uppercase italic">Motor de Inteligência</h2>
-                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Escolha seu Provedor de Elite</p>
+                <h2 className="text-2xl font-black uppercase italic">Fluxo Externo (n8n)</h2>
+                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Integração via Webhook</p>
               </div>
             </div>
             <button 
-              onClick={testAI}
+              onClick={testWebhook}
               disabled={aiTestStatus.loading}
               className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border ${
                 aiTestStatus.status === 'success' ? 'bg-green-500/10 border-green-500 text-green-500' : 
@@ -128,74 +122,38 @@ const SettingsPage: React.FC = () => {
                 'bg-white/5 border-white/10 text-white hover:bg-white/10'
               }`}
             >
-              {aiTestStatus.loading ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} />}
-              {aiTestStatus.loading ? 'Testando...' : 'Testar Conexão'}
+              {aiTestStatus.loading ? <Loader2 className="animate-spin" size={14} /> : <Activity size={14} />}
+              {aiTestStatus.loading ? 'Validando...' : 'Testar Webhook'}
             </button>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Provedor</label>
-              <select 
-                value={settings.aiConfig?.provider} 
-                onChange={e => setSettings({...settings, aiConfig: { ...settings.aiConfig!, provider: e.target.value as any }})}
-                className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-neon text-sm"
-              >
-                <option value="gemini">Google Gemini (Gratuito/Billing)</option>
-                <option value="openai">OpenAI (ChatGPT/sk- key)</option>
-                <option value="custom">Provedor Customizado (DeepSeek, etc)</option>
-              </select>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Modelo</label>
-              <input 
-                value={settings.aiConfig?.model}
-                onChange={e => setSettings({...settings, aiConfig: { ...settings.aiConfig!, model: e.target.value }})}
-                placeholder={settings.aiConfig?.provider === 'gemini' ? 'gemini-3-flash-preview' : 'gpt-3.5-turbo'}
-                className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-neon text-sm"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Criatividade ({settings.aiConfig?.temperature})</label>
-              <input 
-                type="range" min="0" max="1" step="0.1" 
-                value={settings.aiConfig?.temperature}
-                onChange={e => setSettings({...settings, aiConfig: { ...settings.aiConfig!, temperature: parseFloat(e.target.value) }})}
-                className="w-full h-12 bg-black/40 accent-neon"
-              />
-            </div>
-          </div>
-
-          {settings.aiConfig?.provider !== 'gemini' && (
-             <div className="space-y-2 animate-in slide-in-from-top-2">
-                <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Base URL (Opcional)</label>
-                <div className="relative">
-                  <Globe className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-700" size={16} />
-                  <input 
-                    value={settings.aiConfig?.baseUrl}
-                    onChange={e => setSettings({...settings, aiConfig: { ...settings.aiConfig!, baseUrl: e.target.value }})}
-                    placeholder="https://api.openai.com/v1/chat/completions"
-                    className="w-full bg-black border border-white/10 rounded-2xl pl-14 pr-6 py-4 outline-none focus:border-neon text-sm placeholder:text-zinc-800"
-                  />
-                </div>
+          <div className="p-10 bg-black/40 rounded-[32px] border border-white/5 space-y-6">
+             <div className="flex items-center gap-3 text-neon font-black uppercase text-[10px] tracking-[0.2em]">
+               <Info size={16} /> Configuração de Produção
              </div>
-          )}
-
-          <div className="p-8 bg-black/40 rounded-3xl border border-white/5 flex items-start gap-4">
-             <Info className="text-zinc-500 shrink-0" size={18} />
-             <p className="text-[10px] text-zinc-600 font-bold uppercase leading-relaxed">
-               O sistema detecta automaticamente o provedor com base na chave no arquivo .env. 
-               Se sua chave começa com <span className="text-neon">sk-</span>, usaremos o protocolo OpenAI. 
-               Se começa com <span className="text-neon">AIza</span>, usaremos o SDK nativo do Google.
+             <p className="text-zinc-400 text-sm leading-relaxed max-w-2xl">
+               A inteligência artificial não é mais processada neste painel. Todas as requisições de geração de posts são enviadas para a instância n8n em: 
+               <code className="block mt-4 p-4 bg-black rounded-xl border border-white/10 text-neon font-mono text-[10px] break-all">
+                 https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator
+               </code>
              </p>
           </div>
 
-          <div className="pt-8 border-t border-white/5 flex justify-end">
-            <button onClick={handleSave} className="bg-neon text-black font-black px-12 py-5 rounded-2xl text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-neon/20">
-              <Save size={16} /> Consagrar Provedor
-            </button>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-zinc-950 p-8 rounded-3xl border border-white/5 space-y-4">
+              <h4 className="text-white text-[11px] font-black uppercase italic tracking-widest">Vantagens do n8n</h4>
+              <ul className="text-[10px] text-zinc-500 space-y-2 uppercase font-bold">
+                <li className="flex items-center gap-2 text-green-400"><CheckCircle2 size={12} /> Desacoplamento da Interface</li>
+                <li className="flex items-center gap-2 text-green-400"><CheckCircle2 size={12} /> Processamento Assíncrono</li>
+                <li className="flex items-center gap-2 text-green-400"><CheckCircle2 size={12} /> Logs Detalhados Externos</li>
+              </ul>
+            </div>
+            <div className="bg-zinc-950 p-8 rounded-3xl border border-white/5 space-y-4">
+              <h4 className="text-white text-[11px] font-black uppercase italic tracking-widest">Segurança</h4>
+              <p className="text-[10px] text-zinc-600 font-bold uppercase leading-relaxed">
+                As chaves de API (OpenAI/Gemini) agora ficam armazenadas apenas no n8n, protegendo o seu projeto contra vazamentos de credenciais no frontend.
+              </p>
+            </div>
           </div>
         </div>
       )}

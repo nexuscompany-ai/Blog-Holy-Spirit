@@ -11,49 +11,35 @@ export interface GeneratedPost {
 
 export const aiService = {
   /**
-   * Encaminha a requisição para o nosso backend seguro (Vercel Function)
+   * Dispara o fluxo de automação no n8n via nosso proxy de API
    */
-  async generatePost(prompt: string, config: { provider?: string; model: string; temperature: number; baseUrl?: string }): Promise<GeneratedPost> {
+  async generatePost(prompt: string, config: { category: string }): Promise<any> {
     try {
-      const fullPrompt = `Gere um artigo de blog profissional focado em SEO para a academia Holy Spirit. Tema: ${prompt}.`;
-
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: fullPrompt,
-          config: {
-            model: config.model,
-            temperature: config.temperature
-          }
+          prompt: prompt,
+          category: config.category,
+          source: 'holy_spirit_admin'
         })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erro desconhecido no servidor de IA.');
+        throw new Error(data.error || 'Erro na comunicação com o n8n.');
       }
 
-      // Se o dado já for um objeto (OpenAI ou Gemini parseado pelo handler)
-      if (typeof data === 'object' && data !== null && data.title) {
-        return data as GeneratedPost;
-      }
-
-      // Se for uma string JSON (Gemini às vezes retorna assim)
-      try {
-        return JSON.parse(data);
-      } catch {
-        throw new Error("A IA retornou um formato inválido. Tente novamente.");
-      }
+      return data;
     } catch (error: any) {
-      console.error("AI Service Error:", error);
-      throw new Error(error.message || "Erro na conexão com o Templo da IA.");
+      console.error("AI Service Webhook Error:", error);
+      throw new Error(error.message || "Erro na conexão com a central de automação.");
     }
   },
 
   /**
-   * Testa a integração chamando o backend
+   * Verifica se o endpoint de automação está respondendo
    */
   async testIntegration(): Promise<{ success: boolean; message: string }> {
     try {
@@ -61,19 +47,20 @@ export const aiService = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: "Responda apenas com a palavra: OK",
-          config: { model: 'gemini-3-flash-preview', temperature: 0 }
+          prompt: "PING TEST",
+          category: "System",
+          source: "health_check"
         })
       });
 
       if (response.ok) {
-        return { success: true, message: "Conexão estabelecida." };
+        return { success: true, message: "Webhook n8n Online." };
       }
       
       const err = await response.json();
-      return { success: false, message: err.error || "Erro de resposta." };
+      return { success: false, message: err.error || "Webhook n8n Offline." };
     } catch (error: any) {
-      return { success: false, message: "Erro de rede." };
+      return { success: false, message: "Erro de rede com n8n." };
     }
   }
 };

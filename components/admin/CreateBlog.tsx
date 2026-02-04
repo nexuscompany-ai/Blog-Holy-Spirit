@@ -2,9 +2,9 @@
 import React, { useState, useRef } from 'react';
 import { 
   Sparkles, Loader2, PenTool, Zap, BrainCircuit, Camera, 
-  ShieldCheck, HelpCircle, Settings as SettingsIcon, Globe, Search
+  ShieldCheck, Globe, Search, ArrowRight, MessageSquare
 } from 'lucide-react';
-import { aiService, GeneratedPost } from '../../services/ai.service';
+import { aiService } from '../../services/ai.service';
 import { dbService } from '../../db';
 
 interface CreateBlogProps {
@@ -20,7 +20,9 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [iaPrompt, setIaPrompt] = useState('');
-  const [articleData, setArticleData] = useState<GeneratedPost & { image: string; publishedAt: string; published: boolean; source: string }>({
+  const [targetCategory, setTargetCategory] = useState('Musculação');
+  
+  const [articleData, setArticleData] = useState({
     title: '',
     excerpt: '',
     content: '',
@@ -46,25 +48,19 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     reader.readAsDataURL(file);
   };
 
-  const generateWithIA = async () => {
+  const triggerN8nAutomation = async () => {
     if (!iaPrompt) return;
     setLoading(true);
     try {
-      // Busca configurações reais para saber qual motor usar
-      const settings = await dbService.getSettings();
-      const result = await aiService.generatePost(iaPrompt, {
-        provider: settings.aiConfig?.provider,
-        model: settings.aiConfig?.model || 'gemini-3-flash-preview',
-        temperature: settings.aiConfig?.temperature || 0.7,
-        baseUrl: settings.aiConfig?.baseUrl
+      await aiService.generatePost(iaPrompt, {
+        category: targetCategory
       });
       
-      setArticleData(prev => ({ 
-        ...prev, 
-        ...result, 
-        source: 'ai' 
-      }));
-      setStep('editing');
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        onSuccess(); // Volta para a lista de posts para ver o novo post chegar
+      }, 3000);
     } catch (error: any) {
       alert(error.message);
     } finally {
@@ -72,7 +68,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     }
   };
 
-  const publishArticle = async () => {
+  const publishArticleManual = async () => {
     if (!articleData.title) return;
     setLoading(true);
     try {
@@ -96,7 +92,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
           onClick={() => { setActiveMode('ia'); setStep('input'); }}
           className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeMode === 'ia' ? 'bg-[#cfec0f] text-black' : 'text-gray-500 hover:text-white'}`}
         >
-          <Sparkles size={14} /> Escritora Inteligente
+          <Sparkles size={14} /> Automação n8n
         </button>
         <button 
           onClick={() => { setActiveMode('manual'); setStep('editing'); }}
@@ -109,28 +105,64 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       {step === 'input' && activeMode === 'ia' && (
         <div className="grid lg:grid-cols-2 gap-12 animate-in fade-in duration-700">
           <div className="bg-zinc-900/10 p-12 rounded-[40px] border border-white/5 space-y-8">
-            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-[#cfec0f]">Ideia do Artigo</h2>
-            <textarea
-              value={iaPrompt}
-              onChange={(e) => setIaPrompt(e.target.value)}
-              placeholder="Ex: Guia definitivo para treinar costas com foco em postura..."
-              className="w-full bg-black border border-white/10 rounded-3xl p-8 outline-none focus:border-[#cfec0f] text-lg min-h-[250px] resize-none leading-relaxed transition-all"
-            />
+            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-[#cfec0f]">Gerar com IA</h2>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Categoria Alvo</label>
+                <select 
+                  value={targetCategory} 
+                  onChange={e => setTargetCategory(e.target.value)}
+                  className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#cfec0f] text-sm"
+                >
+                  <option>Musculação</option>
+                  <option>Nutrição</option>
+                  <option>Espiritualidade</option>
+                  <option>Lifestyle</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Tema do Artigo</label>
+                <textarea
+                  value={iaPrompt}
+                  onChange={(e) => setIaPrompt(e.target.value)}
+                  placeholder="Ex: Guia definitivo para treinar costas..."
+                  className="w-full bg-black border border-white/10 rounded-3xl p-8 outline-none focus:border-[#cfec0f] text-lg min-h-[200px] resize-none leading-relaxed transition-all"
+                />
+              </div>
+            </div>
+
             <button
-              onClick={generateWithIA}
+              onClick={triggerN8nAutomation}
               disabled={loading || !iaPrompt}
               className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] shadow-xl disabled:opacity-30"
             >
               {loading ? <Loader2 className="animate-spin" /> : <Zap size={18} />}
-              {loading ? "PROCESSANDO INTELIGÊNCIA..." : "GERAR COM IA"}
+              {loading ? "ENVIANDO PARA O n8n..." : "LANÇAR AUTOMAÇÃO"}
             </button>
           </div>
-          <div className="flex flex-col justify-center items-center text-center p-12 border border-dashed border-white/10 rounded-[40px] bg-zinc-900/5">
-            <Globe size={64} className="text-zinc-800 mb-6" />
-            <h3 className="text-zinc-400 font-black uppercase text-sm mb-4">Automação de SEO</h3>
-            <p className="text-gray-600 uppercase font-black text-[9px] tracking-widest leading-loose max-w-xs">
-              Nossa IA gera automaticamente Meta-Description, Slugs amigáveis e palavras-chave LSI para garantir que seu templo domine o Google.
-            </p>
+
+          <div className="flex flex-col justify-center gap-8 p-12 border border-dashed border-white/10 rounded-[40px] bg-zinc-900/5">
+            <div className="space-y-4">
+              <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400">
+                <Globe size={32} />
+              </div>
+              <h3 className="text-white font-black uppercase text-sm italic">Fluxo Externo Ativado</h3>
+              <p className="text-zinc-500 uppercase font-black text-[9px] tracking-widest leading-loose">
+                Ao clicar em "Lançar Automação", sua requisição é enviada para o n8n. 
+                Lá, o conteúdo é gerado, o SEO é otimizado e o post é salvo diretamente no Supabase.
+              </p>
+            </div>
+            
+            <div className="space-y-4 pt-8 border-t border-white/5">
+              <div className="flex items-center gap-3 text-green-400 text-[9px] font-black uppercase">
+                <ShieldCheck size={14} /> Conexão Segura
+              </div>
+              <p className="text-zinc-600 text-[9px] font-black uppercase">
+                Status: Sincronizado com n8n Cloud
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -157,31 +189,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
           </div>
 
           <div className="space-y-8">
-            <div className="bg-neon/5 p-8 rounded-[40px] border border-neon/10 space-y-6">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-[#cfec0f] flex items-center gap-2">
-                <Search size={12} /> Inteligência SEO
-              </h4>
-              
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Meta Description</label>
-                  <textarea 
-                    value={articleData.meta_description}
-                    onChange={e => setArticleData({...articleData, meta_description: e.target.value})}
-                    className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-[10px] outline-none focus:border-neon resize-none h-20"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Slug da URL</label>
-                  <input 
-                    value={articleData.slug_suggestion}
-                    onChange={e => setArticleData({...articleData, slug_suggestion: e.target.value})}
-                    className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-[10px] outline-none focus:border-neon font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-
             <div className="bg-zinc-900/20 p-8 rounded-[40px] border border-white/5 space-y-6">
               <div className="space-y-2">
                 <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Capa do Artigo</label>
@@ -203,7 +210,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               </div>
 
               <button 
-                onClick={publishArticle}
+                onClick={publishArticleManual}
                 disabled={loading}
                 className="w-full bg-[#cfec0f] text-black font-black py-5 rounded-2xl text-[10px] uppercase tracking-widest hover:scale-[1.02] shadow-xl disabled:opacity-30 flex items-center justify-center gap-2"
               >
@@ -217,7 +224,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
 
       {success && (
         <div className="fixed bottom-12 right-12 bg-green-600 text-white px-10 py-6 rounded-3xl font-black uppercase tracking-widest shadow-2xl flex items-center gap-4 animate-in slide-in-from-right-12 z-[100]">
-          <ShieldCheck size={24} /> Conteúdo Santificado!
+          <ShieldCheck size={24} /> {activeMode === 'ia' ? 'Automação Iniciada!' : 'Conteúdo Santificado!'}
         </div>
       )}
     </div>
