@@ -5,6 +5,7 @@ export const config = {
 
 /**
  * PROXY HOLY SPIRIT -> N8N CLOUD (ORCHESTRATOR)
+ * Gerencia a comunicação entre o site e o fluxo de automação.
  */
 export default async function handler(req: Request) {
   const headers = {
@@ -22,9 +23,10 @@ export default async function handler(req: Request) {
     const body = await req.json().catch(() => ({}));
     const { prompt, category, mode, postData } = body;
 
-    const N8N_WEBHOOK_URL = "https:https://felipealmeida0777.app.n8n.cloud/webhook-test/blog-generator";
+    // URL DE PRODUÇÃO DO WEBHOOK
+    // Importante: No n8n, o Workflow deve estar com o botão "Active" ligado.
+    const N8N_WEBHOOK_URL = "https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator";
 
-    // Prepara o payload para o n8n conforme o modo
     const payload = {
       mode: mode || 'preview',
       tema: prompt,
@@ -43,29 +45,30 @@ export default async function handler(req: Request) {
       body: JSON.stringify(payload),
     });
 
+    const responseText = await n8nResponse.text();
+    
+    // Se o webhook não estiver "Active", o n8n retorna 404
     if (n8nResponse.status === 404) {
       return new Response(JSON.stringify({ 
         success: false,
-        error: 'Webhook n8n não registrado.', 
-        details: 'Verifique se o workflow está ATIVO (botão superior direito no n8n) e se a URL termina em /webhook/blog-generator' 
+        error: 'Workflow n8n Inativo', 
+        details: 'O workflow no n8n Cloud não está ATIVO ou a URL está incorreta (/webhook/blog-generator).' 
       }), { status: 404, headers });
     }
 
-    const responseText = await n8nResponse.text();
     let responseData;
-    
     try {
       responseData = JSON.parse(responseText);
-      // Se n8n retornar array, pega o primeiro
+      // Se n8n retornar um array (comum no nó Supabase), pegamos o primeiro item
       if (Array.isArray(responseData)) responseData = responseData[0];
     } catch {
-      responseData = { success: false, error: 'Resposta inválida do n8n', raw: responseText };
+      responseData = { success: false, error: 'Erro no JSON do n8n', raw: responseText };
     }
 
     if (!n8nResponse.ok) {
       return new Response(JSON.stringify({ 
         success: false,
-        error: responseData.error || 'Erro no n8n',
+        error: responseData.error || 'Erro na Automação', 
         details: responseData.message || `Status ${n8nResponse.status}`
       }), { status: n8nResponse.status, headers });
     }
@@ -75,7 +78,7 @@ export default async function handler(req: Request) {
   } catch (error: any) {
     return new Response(JSON.stringify({ 
       success: false,
-      error: 'Falha de conexão Cloud.',
+      error: 'Falha Crítica de Conexão',
       details: error.message 
     }), { status: 500, headers });
   }

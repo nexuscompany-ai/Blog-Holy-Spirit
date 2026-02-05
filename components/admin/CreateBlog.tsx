@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { 
   Sparkles, Loader2, PenTool, Zap, BrainCircuit, 
   ShieldCheck, CheckCircle, AlertCircle, RefreshCw, 
-  Terminal, FileText, CheckCircle2, Eye, Send, Trash2, ArrowLeft
+  Terminal, FileText, CheckCircle2, Eye, Send, ArrowLeft
 } from 'lucide-react';
 import { aiService } from '../../services/ai.service';
 import { dbService } from '../../db';
@@ -48,7 +48,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       if (result.post) {
         setPreviewPost(result.post);
       } else {
-        throw new Error("O n8n não retornou o objeto 'post' esperado no modo Preview.");
+        throw new Error("O n8n retornou sucesso mas o objeto 'post' está vazio.");
       }
     } catch (error: any) {
       setErrorMsg(error.message);
@@ -66,12 +66,15 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       const result = await aiService.publishPost(previewPost, targetCategory);
       if (result.success) {
         setSuccess(true);
+        // Reseta tudo e chama a atualização da lista
         setTimeout(() => {
           setSuccess(false);
-          onSuccess();
-        }, 3000);
+          setPreviewPost(null);
+          setIaPrompt('');
+          onSuccess(); // Isso muda para a tab "Meus Blogs" no AdminLayout
+        }, 2000);
       } else {
-        throw new Error(result.error || "Falha ao publicar via n8n.");
+        throw new Error(result.error || "O n8n falhou ao salvar no Supabase.");
       }
     } catch (error: any) {
       setErrorMsg(error.message);
@@ -132,12 +135,12 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
           <div className="bg-zinc-900/10 p-12 rounded-[40px] border border-white/5 space-y-8 relative overflow-hidden h-fit">
             <div className="flex justify-between items-center relative z-10">
                <h2 className="text-4xl font-black uppercase italic tracking-tighter text-[#cfec0f]">
-                {previewPost ? "Revisão Final" : "Gerador Cloud"}
+                {previewPost ? "Revisão Final" : "Gerador IA"}
                </h2>
                <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5">
                  <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${previewPost ? 'bg-orange-500' : 'bg-green-500'}`} />
                  <span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">
-                  {previewPost ? 'Aguardando Confirmação' : 'n8n Pipeline'}
+                  {previewPost ? 'Aguardando Publicação' : 'n8n Pipeline'}
                  </span>
                </div>
             </div>
@@ -164,7 +167,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                     value={iaPrompt}
                     onChange={(e) => setIaPrompt(e.target.value)}
                     disabled={loading}
-                    placeholder="O que a IA deve escrever? Defina o tema..."
+                    placeholder="Defina o tema para a IA escrever..."
                     className="w-full bg-black border border-white/10 rounded-3xl p-8 outline-none focus:border-[#cfec0f] text-lg min-h-[220px] resize-none leading-relaxed transition-all disabled:opacity-50"
                   />
                 </div>
@@ -175,18 +178,18 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                   className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-[#cfec0f]/20 disabled:opacity-30"
                 >
                   {loading ? <RefreshCw className="animate-spin" size={20} /> : <Zap size={20} />}
-                  {loading ? "GERANDO PREVIEW..." : "OBTER PREVIEW"}
+                  {loading ? "PROCESSANDO..." : "OBTER PREVIEW"}
                 </button>
               </div>
             ) : (
-              <div className="space-y-6 relative z-10">
+              <div className="space-y-6 relative z-10 animate-in slide-in-from-bottom-4">
                 <div className="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-4">
                   <div className="flex items-center gap-2 text-[#cfec0f]">
                     <ShieldCheck size={16} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Controle de Qualidade</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Confirmação de Envio</span>
                   </div>
                   <p className="text-zinc-400 text-xs leading-relaxed">
-                    O post foi gerado com sucesso. Revise o conteúdo ao lado. Caso esteja correto, clique em publicar para salvar permanentemente no Supabase.
+                    Artigo gerado! O texto abaixo será enviado para a tabela <strong>posts</strong> do seu Supabase através do n8n.
                   </p>
                 </div>
 
@@ -197,14 +200,14 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                     className="w-full bg-green-500 text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-green-500/20"
                   >
                     {loading ? <Loader2 className="animate-spin" /> : <Send size={20} />}
-                    CONFIRMAR PUBLICAÇÃO
+                    PUBLICAR AGORA
                   </button>
                   
                   <button
                     onClick={() => setPreviewPost(null)}
                     className="w-full bg-zinc-800 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-4 hover:bg-zinc-700 transition-all text-[10px] uppercase tracking-widest"
                   >
-                    <ArrowLeft size={16} /> REFAZER BRIEFING
+                    <ArrowLeft size={16} /> REFAZER TEXTO
                   </button>
                 </div>
               </div>
@@ -214,15 +217,20 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               <div className="p-5 bg-red-500/10 border border-red-500/20 rounded-2xl flex flex-col gap-2 animate-in shake relative z-10">
                 <div className="flex items-center gap-3 text-red-500">
                   <AlertCircle size={16} />
-                  <p className="text-[10px] font-black uppercase tracking-widest">Erro no Backend n8n</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest">Falha no Pipeline</p>
                 </div>
                 <p className="text-zinc-500 text-[10px] leading-relaxed font-medium pl-7">{errorMsg}</p>
+                {errorMsg.includes('Inativo') && (
+                  <div className="mt-2 pl-7 flex items-center gap-2 text-[8px] text-zinc-600 uppercase font-black italic">
+                    <Terminal size={10} /> Dica: Ative o botão superior direito no n8n Cloud
+                  </div>
+                )}
               </div>
             )}
           </div>
 
           {/* ÁREA DE VISUALIZAÇÃO (PREVIEW) */}
-          <div className="bg-zinc-900/5 border border-dashed border-white/10 rounded-[40px] p-10 overflow-y-auto max-h-[80vh] custom-scrollbar">
+          <div className="bg-zinc-900/5 border border-dashed border-white/10 rounded-[40px] p-10 overflow-y-auto max-h-[80vh] custom-scrollbar relative">
             {previewPost ? (
               <div className="animate-in fade-in slide-in-from-right-10 duration-700">
                 <div className="flex items-center gap-4 mb-8">
@@ -232,17 +240,17 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
 
                 <div className="space-y-10">
                   <div className="space-y-2">
-                    <span className="text-[9px] font-black text-neon uppercase tracking-widest">Título Gerado</span>
+                    <span className="text-[9px] font-black text-neon uppercase tracking-widest">Título</span>
                     <h1 className="text-4xl font-black italic leading-tight text-white">{previewPost.title}</h1>
                   </div>
 
                   <div className="space-y-2">
-                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Resumo (Excerpt)</span>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Resumo</span>
                     <p className="text-zinc-400 italic font-medium leading-relaxed">{previewPost.excerpt}</p>
                   </div>
 
                   <div className="space-y-4">
-                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">HTML Final</span>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Conteúdo (HTML)</span>
                     <div className="p-8 bg-black rounded-3xl border border-white/5 prose prose-invert prose-sm max-w-none text-zinc-400 leading-relaxed font-medium">
                        <div dangerouslySetInnerHTML={{ __html: previewPost.content }} />
                     </div>
@@ -255,14 +263,14 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                   <FileText size={40} />
                 </div>
                 <div className="space-y-3">
-                  <h3 className="text-white font-black uppercase italic text-sm">Aguardando Orquestração</h3>
+                  <h3 className="text-white font-black uppercase italic text-sm">Pronto para Orquestrar</h3>
                   <p className="text-zinc-600 text-[10px] font-bold uppercase tracking-widest max-w-[240px]">
-                    Assim que você disparar o n8n, o preview do artigo aparecerá aqui para sua revisão final.
+                    Sua automação n8n entregará o preview aqui. Nada é salvo sem sua aprovação.
                   </p>
                 </div>
                 {loading && (
                    <div className="flex flex-col items-center gap-4 animate-in fade-in">
-                     <div className="w-10 h-10 border-2 border-neon border-t-transparent rounded-full animate-spin" />
+                     <Loader2 className="animate-spin text-neon" size={32} />
                      <p className="text-neon text-[8px] font-black uppercase tracking-[0.3em]">IA no Templo...</p>
                    </div>
                 )}
@@ -321,10 +329,10 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       {success && (
         <div className="fixed bottom-12 right-12 bg-[#cfec0f] text-black px-10 py-6 rounded-3xl font-black uppercase tracking-widest shadow-2xl flex flex-col gap-1 animate-in slide-in-from-right-12 z-[100]">
           <div className="flex items-center gap-3">
-            <ShieldCheck size={24} /> 
-            <span className="text-sm">Consagração Completa!</span>
+            <CheckCircle size={24} /> 
+            <span className="text-sm">Post Sincronizado!</span>
           </div>
-          <p className="text-[8px] font-bold text-black/60 uppercase tracking-widest">O post está ao vivo no Templo.</p>
+          <p className="text-[8px] font-bold text-black/60 uppercase tracking-widest">Atualizando banco do Templo...</p>
         </div>
       )}
     </div>
