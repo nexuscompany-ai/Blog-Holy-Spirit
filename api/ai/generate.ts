@@ -33,7 +33,7 @@ export default async function handler(req: Request) {
     }
 
     // URL DO SEU WEBHOOK N8N
-    const N8N_WEBHOOK_URL = "https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator";
+    const N8N_WEBHOOK_URL = "https://felipealmeida0777.app.n8n.cloud/webhook-test/blog-generatorr";
 
     // Envio para o n8n
     const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
