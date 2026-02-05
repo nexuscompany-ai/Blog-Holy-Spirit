@@ -4,8 +4,8 @@ export const config = {
 };
 
 /**
- * PROXY DE INTEGRAÇÃO HOLY SPIRIT -> N8N CLOUD
- * Este arquivo faz a ponte entre o site e sua automação no n8n.
+ * PROXY HOLY SPIRIT -> N8N CLOUD
+ * Este proxy aguarda a resposta final do n8n contendo o artigo gerado.
  */
 export default async function handler(req: Request) {
   const headers = {
@@ -19,27 +19,19 @@ export default async function handler(req: Request) {
     return new Response(null, { status: 204, headers });
   }
 
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Método não permitido' }), { status: 405, headers });
-  }
-
   try {
     const body = await req.json().catch(() => ({}));
     const { prompt, category } = body;
 
-    if (!prompt) {
-      return new Response(JSON.stringify({ error: 'O tema é obrigatório.' }), { status: 400, headers });
-    }
-
+    // URL DE PRODUÇÃO DO WEBHOOK
+    // Certifique-se que o Workflow está "ACTIVE" no n8n Cloud
     const N8N_WEBHOOK_URL = "https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator";
 
-    // Envio para o n8n
     const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Connection': 'keep-alive'
       },
       body: JSON.stringify({
         tema: prompt,
@@ -50,38 +42,36 @@ export default async function handler(req: Request) {
     });
 
     const responseText = await n8nResponse.text();
-    let responseData;
+    
+    // Tratamento específico para o erro de Webhook não registrado
+    if (n8nResponse.status === 404) {
+      return new Response(JSON.stringify({ 
+        error: 'Webhook n8n não registrado.', 
+        details: 'O workflow no n8n Cloud não está ATIVO ou o path "blog-generator" está incorreto no nó Webhook.' 
+      }), { status: 404, headers });
+    }
 
+    let responseData;
     try {
       responseData = JSON.parse(responseText);
-      
-      // n8n retorna frequentemente um array [ { ... } ]. 
-      // Se for o caso, pegamos o primeiro item.
-      if (Array.isArray(responseData) && responseData.length > 0) {
-        responseData = responseData[0];
-      }
-    } catch (e) {
+      if (Array.isArray(responseData)) responseData = responseData[0];
+    } catch {
       responseData = { message: responseText };
     }
 
     if (!n8nResponse.ok) {
       return new Response(JSON.stringify({ 
-        error: 'O n8n retornou um erro.', 
+        error: 'Erro no processamento do n8n.', 
         details: responseData.error || responseData.message || `Status ${n8nResponse.status}`
       }), { status: n8nResponse.status, headers });
     }
 
-    // Retorna para o front-end o sucesso vindo do n8n
-    return new Response(JSON.stringify({
-      success: responseData.success || responseData.status === 'success' || true,
-      message: responseData.message || 'Workflow acionado!',
-      post: responseData.post || null
-    }), { status: 200, headers });
+    // Retorna exatamente o formato que o seu workflow n8n produz
+    return new Response(JSON.stringify(responseData), { status: 200, headers });
 
   } catch (error: any) {
-    console.error("[Proxy Error]:", error);
     return new Response(JSON.stringify({ 
-      error: 'Falha na comunicação com o Hub n8n.',
+      error: 'Falha de conexão com a Cloud.',
       details: error.message 
     }), { status: 500, headers });
   }

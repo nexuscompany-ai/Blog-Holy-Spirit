@@ -1,7 +1,7 @@
 
 export const aiService = {
   /**
-   * Aciona a geração via n8n
+   * Envia o briefing e aguarda o n8n devolver o post pronto
    */
   async generatePost(prompt: string, config: { category: string }): Promise<any> {
     try {
@@ -20,13 +20,12 @@ export const aiService = {
       const data = await response.json();
 
       if (!response.ok) {
-        const errorMessage = data.details || data.error || 'Erro inesperado no servidor.';
-        throw new Error(errorMessage);
+        throw new Error(data.details || data.error || 'Erro na automação Cloud');
       }
 
-      // Verifica se o n8n reportou sucesso no JSON de retorno
+      // Validação do formato obrigatório definido para o n8n
       if (data.success === false) {
-        throw new Error(data.error || 'O n8n processou mas retornou erro.');
+        throw new Error(data.error || 'O n8n falhou ao gerar o conteúdo.');
       }
 
       return data;
@@ -37,7 +36,7 @@ export const aiService = {
   },
 
   /**
-   * Teste de conectividade
+   * Teste de integridade
    */
   async testIntegration(): Promise<{ success: boolean; message: string }> {
     try {
@@ -50,10 +49,10 @@ export const aiService = {
       const data = await response.json();
       return { 
         success: response.ok, 
-        message: response.ok ? "n8n Online" : (data.details || "n8n Offline") 
+        message: response.ok ? "n8n Consagrado" : (data.details || "n8n Inacessível") 
       };
     } catch {
-      return { success: false, message: "Erro de Rede" };
+      return { success: false, message: "Erro de Rede Local" };
     }
   }
 };
