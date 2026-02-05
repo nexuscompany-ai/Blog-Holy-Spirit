@@ -146,7 +146,16 @@ export const dbService = {
       const saved = localStorage.getItem('holy_blogs');
       return saved ? JSON.parse(saved) : [];
     }
-    const { data } = await supabase.from('posts').select('*').order('createdAt', { ascending: false });
+    // Forçamos a busca sem cache para garantir que posts recém-chegados do n8n apareçam
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .order('createdAt', { ascending: false });
+    
+    if (error) {
+      console.error("Erro ao buscar blogs do Supabase:", error);
+      return [];
+    }
     return data || [];
   },
 
