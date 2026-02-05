@@ -1,7 +1,7 @@
 
 export const aiService = {
   /**
-   * Dispara o sinal para o n8n gerar o post
+   * Aciona a geração via n8n
    */
   async generatePost(prompt: string, config: { category: string }): Promise<any> {
     try {
@@ -20,11 +20,13 @@ export const aiService = {
       const data = await response.json();
 
       if (!response.ok) {
-        // Se o erro for 404, o workflow no n8n provavelmente está desativado
-        if (response.status === 404) {
-          throw new Error("Webhook n8n não encontrado. Verifique se o workflow está em modo 'ACTIVE' no n8n Cloud.");
-        }
-        throw new Error(data.details || data.error || 'Erro na automação');
+        const errorMessage = data.details || data.error || 'Erro inesperado no servidor.';
+        throw new Error(errorMessage);
+      }
+
+      // Verifica se o n8n reportou sucesso no JSON de retorno
+      if (data.success === false) {
+        throw new Error(data.error || 'O n8n processou mas retornou erro.');
       }
 
       return data;
@@ -35,7 +37,7 @@ export const aiService = {
   },
 
   /**
-   * Teste rápido de conectividade
+   * Teste de conectividade
    */
   async testIntegration(): Promise<{ success: boolean; message: string }> {
     try {
@@ -45,9 +47,10 @@ export const aiService = {
         body: JSON.stringify({ prompt: 'TEST_PING', category: 'System' })
       });
       
+      const data = await response.json();
       return { 
         success: response.ok, 
-        message: response.ok ? "n8n Conectado" : "Falha na Nuvem" 
+        message: response.ok ? "n8n Online" : (data.details || "n8n Offline") 
       };
     } catch {
       return { success: false, message: "Erro de Rede" };

@@ -5,8 +5,7 @@ export const config = {
 
 /**
  * PROXY DE INTEGRAÇÃO HOLY SPIRIT -> N8N CLOUD
- * Este arquivo garante que o front-end não sofra com bloqueios de CORS 
- * e que os dados cheguem limpos ao seu webhook.
+ * Este arquivo faz a ponte entre o site e sua automação no n8n.
  */
 export default async function handler(req: Request) {
   const headers = {
@@ -29,18 +28,18 @@ export default async function handler(req: Request) {
     const { prompt, category } = body;
 
     if (!prompt) {
-      return new Response(JSON.stringify({ error: 'O briefing (tema) é obrigatório.' }), { status: 400, headers });
+      return new Response(JSON.stringify({ error: 'O tema é obrigatório.' }), { status: 400, headers });
     }
 
-    // URL DO SEU WEBHOOK N8N
-    const N8N_WEBHOOK_URL = "https://felipealmeida0777.app.n8n.cloud/webhook-test/blog-generator";
+    const N8N_WEBHOOK_URL = "https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator";
 
     // Envio para o n8n
     const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Connection': 'keep-alive'
       },
       body: JSON.stringify({
         tema: prompt,
@@ -50,31 +49,39 @@ export default async function handler(req: Request) {
       }),
     });
 
-    // Captura a resposta do n8n (pode ser texto ou JSON)
     const responseText = await n8nResponse.text();
     let responseData;
+
     try {
       responseData = JSON.parse(responseText);
-    } catch {
-      responseData = { rawResponse: responseText };
+      
+      // n8n retorna frequentemente um array [ { ... } ]. 
+      // Se for o caso, pegamos o primeiro item.
+      if (Array.isArray(responseData) && responseData.length > 0) {
+        responseData = responseData[0];
+      }
+    } catch (e) {
+      responseData = { message: responseText };
     }
 
     if (!n8nResponse.ok) {
       return new Response(JSON.stringify({ 
-        error: 'O n8n recusou a requisição.', 
-        details: `Status ${n8nResponse.status}: ${responseText.slice(0, 100)}`
+        error: 'O n8n retornou um erro.', 
+        details: responseData.error || responseData.message || `Status ${n8nResponse.status}`
       }), { status: n8nResponse.status, headers });
     }
 
+    // Retorna para o front-end o sucesso vindo do n8n
     return new Response(JSON.stringify({
-      status: 'success',
-      message: 'Workflow n8n acionado com sucesso!',
-      data: responseData
+      success: responseData.success || responseData.status === 'success' || true,
+      message: responseData.message || 'Workflow acionado!',
+      post: responseData.post || null
     }), { status: 200, headers });
 
   } catch (error: any) {
+    console.error("[Proxy Error]:", error);
     return new Response(JSON.stringify({ 
-      error: 'Erro na ponte de comunicação Cloud.',
+      error: 'Falha na comunicação com o Hub n8n.',
       details: error.message 
     }), { status: 500, headers });
   }

@@ -39,22 +39,24 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     setErrorMsg('');
     
     try {
-      // Chama o serviço que por sua vez chama o Proxy de API
-      await aiService.generatePost(iaPrompt, {
+      // Envia o briefing para o n8n através do nosso Proxy
+      const result = await aiService.generatePost(iaPrompt, {
         category: targetCategory
       });
       
       setSuccess(true);
       setIaPrompt('');
       
-      // Feedback visual e redirecionamento
+      // Se o n8n já devolveu o post gerado (opcional), você poderia fazer algo aqui
+      // Por enquanto, apenas avisamos do sucesso e voltamos para a lista
       setTimeout(() => {
         setSuccess(false);
-        onSuccess(); // Vai para a lista de posts
-      }, 3500);
+        onSuccess(); 
+      }, 4000);
 
     } catch (error: any) {
-      setErrorMsg(error.message);
+      // Captura o erro detalhado vindo do n8n ou do proxy
+      setErrorMsg(error.message || "Erro desconhecido ao acionar n8n.");
     } finally {
       setLoading(false);
     }
@@ -109,11 +111,17 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       {activeMode === 'ia' ? (
         <div className="grid lg:grid-cols-2 gap-12 animate-in fade-in duration-700">
           <div className="bg-zinc-900/10 p-12 rounded-[40px] border border-white/5 space-y-8">
-            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-[#cfec0f]">Gerador Cloud</h2>
+            <div className="flex justify-between items-center">
+               <h2 className="text-4xl font-black uppercase italic tracking-tighter text-[#cfec0f]">Gerador Cloud</h2>
+               <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5">
+                 <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                 <span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">n8n Live</span>
+               </div>
+            </div>
             
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Categoria Alvo</label>
+                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Categoria do Artigo</label>
                 <select 
                   value={targetCategory} 
                   onChange={e => setTargetCategory(e.target.value)}
@@ -127,20 +135,23 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Briefing para o n8n</label>
+                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Briefing do Post</label>
                 <textarea
                   value={iaPrompt}
                   onChange={(e) => setIaPrompt(e.target.value)}
-                  placeholder="Ex: 5 dicas para melhorar o agachamento..."
+                  placeholder="Sobre o que o n8n deve escrever?"
                   className="w-full bg-black border border-white/10 rounded-3xl p-8 outline-none focus:border-[#cfec0f] text-lg min-h-[220px] resize-none leading-relaxed transition-all"
                 />
               </div>
             </div>
 
             {errorMsg && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 animate-in shake">
-                <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={16} />
-                <p className="text-red-500 text-[10px] font-bold uppercase leading-relaxed">{errorMsg}</p>
+              <div className="p-5 bg-red-500/10 border border-red-500/20 rounded-2xl flex flex-col gap-2 animate-in shake">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="text-red-500 shrink-0" size={16} />
+                  <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">Erro na Automação</p>
+                </div>
+                <p className="text-zinc-500 text-[10px] leading-relaxed font-medium pl-7">{errorMsg}</p>
               </div>
             )}
 
@@ -150,7 +161,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-[#cfec0f]/20 disabled:opacity-30"
             >
               {loading ? <RefreshCw className="animate-spin" size={20} /> : <Zap size={20} />}
-              {loading ? "SINCROZINANDO COM n8n..." : "DISPARAR AUTOMAÇÃO"}
+              {loading ? "AGUARDANDO n8n..." : "PUBLICAR VIA N8N"}
             </button>
           </div>
 
@@ -159,16 +170,19 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               <div className="w-16 h-16 bg-neon/10 rounded-2xl flex items-center justify-center text-neon">
                 <BrainCircuit size={32} />
               </div>
-              <h3 className="text-white font-black uppercase text-sm italic">Como acompanhar:</h3>
-              <p className="text-zinc-500 text-xs font-medium leading-relaxed">
-                1. O comando é enviado para o seu n8n Cloud.<br/>
-                2. O workflow valida o tema e gera o conteúdo.<br/>
-                3. O n8n salva o post no Supabase automaticamente.<br/>
-                4. Atualize a página de 'Meus Blogs' em 1-2 minutos para ver o resultado.
-              </p>
-              <div className="pt-6 border-t border-white/5 space-y-4">
-                <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-zinc-600">
-                  <CheckCircle size={14} className="text-neon" /> Webhook: /blog-generator
+              <h3 className="text-white font-black uppercase text-sm italic">O que acontece agora?</h3>
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <div className="w-6 h-6 rounded-full bg-black border border-white/10 flex items-center justify-center text-[10px] font-black text-[#cfec0f] shrink-0">1</div>
+                  <p className="text-zinc-500 text-[11px] leading-relaxed">O site envia o briefing para o <strong>webhook</strong> do n8n.</p>
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-6 h-6 rounded-full bg-black border border-white/10 flex items-center justify-center text-[10px] font-black text-[#cfec0f] shrink-0">2</div>
+                  <p className="text-zinc-500 text-[11px] leading-relaxed">O workflow do n8n gera o texto, as metas de SEO e a capa.</p>
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-6 h-6 rounded-full bg-black border border-white/10 flex items-center justify-center text-[10px] font-black text-[#cfec0f] shrink-0">3</div>
+                  <p className="text-zinc-500 text-[11px] leading-relaxed">O n8n salva tudo no <strong>Supabase</strong> e retorna o sucesso para você.</p>
                 </div>
               </div>
             </div>
@@ -226,9 +240,9 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
         <div className="fixed bottom-12 right-12 bg-[#cfec0f] text-black px-10 py-6 rounded-3xl font-black uppercase tracking-widest shadow-2xl flex flex-col gap-1 animate-in slide-in-from-right-12 z-[100]">
           <div className="flex items-center gap-3">
             <ShieldCheck size={24} /> 
-            <span className="text-sm">Sucesso na Nuvem!</span>
+            <span className="text-sm">Comando Recebido!</span>
           </div>
-          <p className="text-[8px] font-bold text-black/60 uppercase tracking-widest">O n8n confirmou o recebimento.</p>
+          <p className="text-[8px] font-bold text-black/60 uppercase tracking-widest">O n8n assumiu a postagem.</p>
         </div>
       )}
     </div>
