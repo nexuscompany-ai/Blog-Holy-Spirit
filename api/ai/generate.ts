@@ -25,7 +25,7 @@ export default async function handler(req: Request) {
 
     // URL DE PRODUÇÃO DO WEBHOOK
     // Certifique-se que o Workflow está "ACTIVE" no n8n Cloud
-    const N8N_WEBHOOK_URL = "https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator";
+    const N8N_WEBHOOK_URL = "https://felipealmeida0777.app.n8n.cloud/webhook-test/blog-generator";
 
     const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
