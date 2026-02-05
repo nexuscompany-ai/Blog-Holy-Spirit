@@ -52,17 +52,16 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     if (!iaPrompt) return;
     setLoading(true);
     try {
-      const result = await aiService.generatePost(iaPrompt, {
+      await aiService.generatePost(iaPrompt, {
         category: targetCategory
       });
       
       setSuccess(true);
-      setIaPrompt(''); // Limpa o campo
+      setIaPrompt('');
       
-      // Feedback imediato e redirecionamento
       setTimeout(() => {
         setSuccess(false);
-        onSuccess(); // Volta para a lista de posts
+        onSuccess();
       }, 4000);
     } catch (error: any) {
       alert("Aviso: " + error.message);
@@ -94,7 +93,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
           onClick={() => { setActiveMode('ia'); setStep('input'); }}
           className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeMode === 'ia' ? 'bg-[#cfec0f] text-black' : 'text-gray-500 hover:text-white'}`}
         >
-          <Sparkles size={14} /> Automação n8n
+          <Sparkles size={14} /> Escritora n8n
         </button>
         <button 
           onClick={() => { setActiveMode('manual'); setStep('editing'); }}
@@ -107,7 +106,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       {step === 'input' && activeMode === 'ia' && (
         <div className="grid lg:grid-cols-2 gap-12 animate-in fade-in duration-700">
           <div className="bg-zinc-900/10 p-12 rounded-[40px] border border-white/5 space-y-8">
-            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-[#cfec0f]">Geração n8n</h2>
+            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-[#cfec0f]">Geração n8n Cloud</h2>
             
             <div className="space-y-4">
               <div className="space-y-2">
@@ -125,11 +124,11 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Tema do Artigo</label>
+                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Briefing do Conteúdo</label>
                 <textarea
                   value={iaPrompt}
                   onChange={(e) => setIaPrompt(e.target.value)}
-                  placeholder="Ex: Como o jejum intermitente ajuda na clareza espiritual e física..."
+                  placeholder="Descreva o que deseja que o cérebro n8n gere..."
                   className="w-full bg-black border border-white/10 rounded-3xl p-8 outline-none focus:border-[#cfec0f] text-lg min-h-[200px] resize-none leading-relaxed transition-all"
                 />
               </div>
@@ -141,7 +140,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] shadow-xl disabled:opacity-30"
             >
               {loading ? <Loader2 className="animate-spin" /> : <Zap size={18} />}
-              {loading ? "SINCRONIZANDO COM CLOUD..." : "DISPARAR WEBHOOK"}
+              {loading ? "ENVIANDO AO HUB n8n..." : "DISPARAR AUTOMAÇÃO"}
             </button>
           </div>
 
@@ -150,19 +149,13 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               <div className="w-16 h-16 bg-neon/10 rounded-2xl flex items-center justify-center text-neon">
                 <BrainCircuit size={32} />
               </div>
-              <h3 className="text-white font-black uppercase text-sm italic">Como funciona agora:</h3>
+              <h3 className="text-white font-black uppercase text-sm italic">Como funciona o Hub Externo:</h3>
               <ul className="text-zinc-500 uppercase font-black text-[9px] tracking-widest space-y-4">
-                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-neon shrink-0" /> O site envia seu tema para o n8n.</li>
-                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-neon shrink-0" /> O n8n gera o texto, SEO e Imagem.</li>
-                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-neon shrink-0" /> O n8n salva tudo direto no seu banco de dados.</li>
-                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-neon shrink-0" /> O post aparece sozinho no seu feed!</li>
+                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-neon shrink-0" /> O site atua apenas como cliente.</li>
+                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-neon shrink-0" /> O n8n recebe o briefing e decide a estratégia.</li>
+                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-neon shrink-0" /> Geração de texto e SEO ocorre fora do site.</li>
+                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-neon shrink-0" /> O resultado é injetado diretamente no banco.</li>
               </ul>
-            </div>
-            
-            <div className="p-6 bg-black/40 rounded-2xl border border-white/5">
-              <p className="text-[9px] text-zinc-600 font-black uppercase leading-relaxed">
-                STATUS: PRONTO PARA DISPARO EXTERNO
-              </p>
             </div>
           </div>
         </div>
@@ -201,15 +194,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <select value={articleData.category} onChange={e => setArticleData({...articleData, category: e.target.value})} className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-xs outline-none focus:border-neon">
-                  <option>Musculação</option>
-                  <option>Nutrição</option>
-                  <option>Espiritualidade</option>
-                  <option>Lifestyle</option>
-                </select>
-              </div>
-
               <button 
                 onClick={publishArticleManual}
                 disabled={loading}
@@ -227,11 +211,8 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
         <div className="fixed bottom-12 right-12 bg-neon text-black px-10 py-6 rounded-3xl font-black uppercase tracking-widest shadow-2xl flex flex-col gap-2 animate-in slide-in-from-right-12 z-[100]">
           <div className="flex items-center gap-3">
              <ShieldCheck size={24} /> 
-             <span>{activeMode === 'ia' ? 'Comando Enviado!' : 'Conteúdo Santificado!'}</span>
+             <span>{activeMode === 'ia' ? 'Automação Iniciada!' : 'Conteúdo Santificado!'}</span>
           </div>
-          {activeMode === 'ia' && (
-            <p className="text-[8px] font-bold opacity-70">Aguarde alguns minutos para o post aparecer no feed.</p>
-          )}
         </div>
       )}
     </div>

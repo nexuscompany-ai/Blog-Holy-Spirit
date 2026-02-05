@@ -13,7 +13,7 @@ const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'general' | 'automation' | 'infra'>('general');
   const [success, setSuccess] = useState(false);
   const [dbStatus, setDbStatus] = useState<'loading' | 'online' | 'offline'>('loading');
-  const [aiTestStatus, setAiTestStatus] = useState<{ loading: boolean; status: 'idle' | 'success' | 'error'; message: string }>({
+  const [webhookTestStatus, setWebhookTestStatus] = useState<{ loading: boolean; status: 'idle' | 'success' | 'error'; message: string }>({
     loading: false,
     status: 'idle',
     message: ''
@@ -33,9 +33,9 @@ const SettingsPage: React.FC = () => {
   }, []);
 
   const testWebhook = async () => {
-    setAiTestStatus({ loading: true, status: 'idle', message: '' });
+    setWebhookTestStatus({ loading: true, status: 'idle', message: '' });
     const result = await aiService.testIntegration();
-    setAiTestStatus({
+    setWebhookTestStatus({
       loading: false,
       status: result.success ? 'success' : 'error',
       message: result.message
@@ -59,13 +59,13 @@ const SettingsPage: React.FC = () => {
         </button>
         <button 
           onClick={() => setActiveTab('automation')}
-          className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'automation' ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
+          className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'automation' ? 'bg-[#cfec0f] text-black' : 'text-gray-500 hover:text-white'}`}
         >
-          Automação
+          Hub n8n
         </button>
         <button 
           onClick={() => setActiveTab('infra')}
-          className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'infra' ? 'bg-[#cfec0f] text-black' : 'text-gray-500 hover:text-white'}`}
+          className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'infra' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}
         >
           Infraestrutura
         </button>
@@ -109,51 +109,34 @@ const SettingsPage: React.FC = () => {
             <div className="flex items-center gap-4">
               <div className="bg-neon/10 p-3 rounded-xl text-neon"><Zap size={24} /></div>
               <div>
-                <h2 className="text-2xl font-black uppercase italic">Fluxo Externo (n8n)</h2>
-                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Integração via Webhook</p>
+                <h2 className="text-2xl font-black uppercase italic">Conexão Cloud Hub (n8n)</h2>
+                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">A inteligência reside exclusivamente no n8n</p>
               </div>
             </div>
             <button 
               onClick={testWebhook}
-              disabled={aiTestStatus.loading}
+              disabled={webhookTestStatus.loading}
               className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border ${
-                aiTestStatus.status === 'success' ? 'bg-green-500/10 border-green-500 text-green-500' : 
-                aiTestStatus.status === 'error' ? 'bg-red-500/10 border-red-500 text-red-500' :
+                webhookTestStatus.status === 'success' ? 'bg-green-500/10 border-green-500 text-green-500' : 
+                webhookTestStatus.status === 'error' ? 'bg-red-500/10 border-red-500 text-red-500' :
                 'bg-white/5 border-white/10 text-white hover:bg-white/10'
               }`}
             >
-              {aiTestStatus.loading ? <Loader2 className="animate-spin" size={14} /> : <Activity size={14} />}
-              {aiTestStatus.loading ? 'Validando...' : 'Testar Webhook'}
+              {webhookTestStatus.loading ? <Loader2 className="animate-spin" size={14} /> : <Activity size={14} />}
+              {webhookTestStatus.loading ? 'Sincronizando...' : 'Testar Conexão Cloud'}
             </button>
           </div>
 
           <div className="p-10 bg-black/40 rounded-[32px] border border-white/5 space-y-6">
              <div className="flex items-center gap-3 text-neon font-black uppercase text-[10px] tracking-[0.2em]">
-               <Info size={16} /> Configuração de Produção
+               <Info size={16} /> Arquitetura Produção
              </div>
              <p className="text-zinc-400 text-sm leading-relaxed max-w-2xl">
-               A inteligência artificial não é mais processada neste painel. Todas as requisições de geração de posts são enviadas para a instância n8n em: 
+               Este site não possui lógica inteligente local. Todas as decisões de conteúdo são processadas pelo Hub Externo.
                <code className="block mt-4 p-4 bg-black rounded-xl border border-white/10 text-neon font-mono text-[10px] break-all">
-                 https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator
+                 Endpoint: https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator
                </code>
              </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-zinc-950 p-8 rounded-3xl border border-white/5 space-y-4">
-              <h4 className="text-white text-[11px] font-black uppercase italic tracking-widest">Vantagens do n8n</h4>
-              <ul className="text-[10px] text-zinc-500 space-y-2 uppercase font-bold">
-                <li className="flex items-center gap-2 text-green-400"><CheckCircle2 size={12} /> Desacoplamento da Interface</li>
-                <li className="flex items-center gap-2 text-green-400"><CheckCircle2 size={12} /> Processamento Assíncrono</li>
-                <li className="flex items-center gap-2 text-green-400"><CheckCircle2 size={12} /> Logs Detalhados Externos</li>
-              </ul>
-            </div>
-            <div className="bg-zinc-950 p-8 rounded-3xl border border-white/5 space-y-4">
-              <h4 className="text-white text-[11px] font-black uppercase italic tracking-widest">Segurança</h4>
-              <p className="text-[10px] text-zinc-600 font-bold uppercase leading-relaxed">
-                As chaves de API (OpenAI/Gemini) agora ficam armazenadas apenas no n8n, protegendo o seu projeto contra vazamentos de credenciais no frontend.
-              </p>
-            </div>
           </div>
         </div>
       )}

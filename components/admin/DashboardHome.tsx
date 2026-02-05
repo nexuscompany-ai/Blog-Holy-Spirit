@@ -10,35 +10,32 @@ import { aiService } from '../../services/ai.service';
 const DashboardHome: React.FC = () => {
   const [autoSettings, setAutoSettings] = useState<AutomationSettings | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [aiStatus, setAiStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+  const [webhookStatus, setWebhookStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        // Carrega métricas primeiro (Rápido)
         const [auto, m] = await Promise.all([
           dbService.getAutomationSettings(),
           dbService.getMetrics()
         ]);
         setAutoSettings(auto);
         setMetrics(m);
-        setLoading(false); // Libera a tela aqui
-
-        // Verifica a IA em segundo plano (Pode demorar)
-        checkAiStatus();
+        setLoading(false);
+        checkWebhookStatus();
       } catch (err) {
         console.error("Dashboard error:", err);
         setLoading(false);
       }
     };
 
-    const checkAiStatus = async () => {
+    const checkWebhookStatus = async () => {
       try {
-        const aiTest = await aiService.testIntegration();
-        setAiStatus(aiTest.success ? 'online' : 'offline');
+        const test = await aiService.testIntegration();
+        setWebhookStatus(test.success ? 'online' : 'offline');
       } catch {
-        setAiStatus('offline');
+        setWebhookStatus('offline');
       }
     };
 
@@ -48,7 +45,7 @@ const DashboardHome: React.FC = () => {
   const metricCards = metrics ? [
     { label: 'Artigos Publicados', value: metrics.postsCount.toString(), change: 'Total', icon: <BookOpen className="text-blue-500" /> },
     { label: 'Eventos Ativos', value: metrics.activeEventsCount.toString(), change: 'No Feed', icon: <Calendar className="text-neon" /> },
-    { label: 'Automação IA', value: metrics.automationActive ? 'Ativa' : 'Pausada', change: 'Status', icon: <Bot className="text-orange-500" /> },
+    { label: 'Automação n8n', value: metrics.automationActive ? 'Ativa' : 'Pausada', change: 'Status', icon: <Bot className="text-orange-500" /> },
     { label: 'Conversão Estimada', value: '4.2%', change: '+0.5%', icon: <TrendingUp className="text-green-500" /> },
   ] : [];
 
@@ -74,37 +71,37 @@ const DashboardHome: React.FC = () => {
                <Bot size={24} />
              </div>
              <div>
-               <h3 className="text-sm font-black uppercase tracking-widest">Auto-Pilot</h3>
+               <h3 className="text-sm font-black uppercase tracking-widest">Auto-Pilot Cloud</h3>
                <p className={`text-[10px] font-bold uppercase tracking-widest ${autoSettings?.enabled ? 'text-neon' : 'text-zinc-500'}`}>
-                 {autoSettings?.enabled ? `Publicação automática a cada ${autoSettings.frequency_days} dias` : 'Desativado'}
+                 {autoSettings?.enabled ? `Publicação via n8n a cada ${autoSettings.frequency_days} dias` : 'Desativado'}
                </p>
              </div>
           </div>
         </div>
 
         <div className={`p-8 rounded-[32px] border transition-all flex items-center justify-between gap-6 ${
-          aiStatus === 'online' ? 'bg-blue-500/5 border-blue-500/20' : 'bg-red-500/5 border-red-500/20'
+          webhookStatus === 'online' ? 'bg-blue-500/5 border-blue-500/20' : 'bg-red-500/5 border-red-500/20'
         }`}>
           <div className="flex items-center gap-6">
              <div className={`p-4 rounded-2xl ${
-               aiStatus === 'online' ? 'bg-blue-500 text-white' : 
-               aiStatus === 'checking' ? 'bg-zinc-800 text-zinc-400' : 'bg-red-500 text-white'
+               webhookStatus === 'online' ? 'bg-blue-500 text-white' : 
+               webhookStatus === 'checking' ? 'bg-zinc-800 text-zinc-400' : 'bg-red-500 text-white'
              }`}>
-               {aiStatus === 'checking' ? <Loader2 className="animate-spin" size={24} /> : <Zap size={24} />}
+               {webhookStatus === 'checking' ? <Loader2 className="animate-spin" size={24} /> : <Zap size={24} />}
              </div>
              <div>
-               <h3 className="text-sm font-black uppercase tracking-widest">Motor IA (Backend)</h3>
+               <h3 className="text-sm font-black uppercase tracking-widest">Hub n8n (Webhook)</h3>
                <p className={`text-[10px] font-bold uppercase tracking-widest ${
-                 aiStatus === 'online' ? 'text-blue-400' : 
-                 aiStatus === 'checking' ? 'text-zinc-500' : 'text-red-400'
+                 webhookStatus === 'online' ? 'text-blue-400' : 
+                 webhookStatus === 'checking' ? 'text-zinc-500' : 'text-red-400'
                }`}>
-                 {aiStatus === 'online' ? 'Sincronizado' : 
-                  aiStatus === 'checking' ? 'Validando Acesso...' : 'Erro de Configuração Vercel'}
+                 {webhookStatus === 'online' ? 'Sincronizado' : 
+                  webhookStatus === 'checking' ? 'Validando...' : 'Erro na URL n8n'}
                </p>
              </div>
           </div>
-          {aiStatus === 'online' && <ShieldCheck className="text-blue-500" size={20} />}
-          {aiStatus === 'offline' && <AlertTriangle className="text-red-500" size={20} />}
+          {webhookStatus === 'online' && <ShieldCheck className="text-blue-500" size={20} />}
+          {webhookStatus === 'offline' && <AlertTriangle className="text-red-500" size={20} />}
         </div>
       </div>
 
@@ -124,14 +121,12 @@ const DashboardHome: React.FC = () => {
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 bg-zinc-900/20 rounded-[40px] border border-white/5 p-10">
           <h2 className="text-xl font-black uppercase italic flex items-center gap-3 mb-10">
-            <Star size={20} className="text-neon" /> Insights Estratégicos
+            <Star size={20} className="text-neon" /> Status do Templo
           </h2>
           <div className="p-6 bg-black/40 rounded-2xl border border-white/5 italic text-sm text-zinc-400 leading-relaxed">
-            {aiStatus === 'offline' 
-              ? "⚠️ O motor de IA não respondeu. Verifique se você cadastrou a chave com o nome 'API_KEY' nas configurações da Vercel e se fez um novo Deploy."
-              : metrics?.postsCount && metrics.postsCount > 0 
-                ? "Seu Templo está ganhando autoridade. Continue postando para melhorar o SEO orgânico."
-                : "A IA está pronta para gerar seu primeiro conteúdo no servidor seguro."
+            {webhookStatus === 'offline' 
+              ? "⚠️ O Webhook do n8n não respondeu. Verifique se o workflow está ativo no n8n Cloud."
+              : "Seu sistema está operando como cliente do n8n. Toda a inteligência e geração de conteúdo é processada remotamente para máxima segurança."
             }
           </div>
         </div>

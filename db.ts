@@ -16,13 +16,6 @@ export const supabase = createClient(supabaseUrl, supabaseKey || 'eyJhbGciOiJIUz
 // O modo Demo só é ativado se a chave real não existir
 const isDemoMode = !supabaseKey || supabaseKey.includes('sua_chave') || supabaseKey === 'MISSING_ANON_KEY';
 
-export interface AISettings {
-  provider: 'gemini' | 'openai' | 'custom';
-  model: string;
-  temperature: number;
-  baseUrl?: string;
-}
-
 export interface HolySettings {
   id?: string;
   gymName: string;
@@ -30,7 +23,6 @@ export interface HolySettings {
   instagram: string;
   address: string;
   website: string;
-  aiConfig?: AISettings;
 }
 
 export interface HolyEvent {

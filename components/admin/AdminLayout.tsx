@@ -22,7 +22,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
 
   const menuItems = [
     { id: 'dashboard', label: 'Início', icon: <LayoutDashboard size={20} /> },
-    { id: 'create', label: 'Escritora IA', icon: <Sparkles size={20} /> },
+    { id: 'create', label: 'Escritora n8n', icon: <Sparkles size={20} /> },
     { id: 'automation', label: 'Auto-Pilot', icon: <Bot size={20} /> },
     { id: 'list', label: 'Meus Blogs', icon: <List size={20} /> },
     { id: 'event', label: 'Eventos', icon: <Calendar size={20} /> },
