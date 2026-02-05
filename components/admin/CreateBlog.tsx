@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { 
   Sparkles, Loader2, PenTool, Zap, BrainCircuit, 
-  ShieldCheck, CheckCircle, AlertCircle, RefreshCw
+  ShieldCheck, CheckCircle, AlertCircle, RefreshCw, ArrowRight
 } from 'lucide-react';
 import { aiService } from '../../services/ai.service';
 import { dbService } from '../../db';
@@ -39,22 +39,22 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     setErrorMsg('');
     
     try {
-      const result = await aiService.generatePost(iaPrompt, {
+      // Chama o serviço que por sua vez chama o Proxy de API
+      await aiService.generatePost(iaPrompt, {
         category: targetCategory
       });
       
       setSuccess(true);
       setIaPrompt('');
       
-      // Feedback visual antes de redirecionar
+      // Feedback visual e redirecionamento
       setTimeout(() => {
         setSuccess(false);
-        onSuccess();
-      }, 3000);
+        onSuccess(); // Vai para a lista de posts
+      }, 3500);
 
     } catch (error: any) {
-      console.error("Erro no acionamento:", error);
-      setErrorMsg(error.message || "Erro ao conectar com o n8n. Verifique se o workflow está ativo.");
+      setErrorMsg(error.message);
     } finally {
       setLoading(false);
     }
@@ -127,18 +127,18 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Briefing do Post</label>
+                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Briefing para o n8n</label>
                 <textarea
                   value={iaPrompt}
                   onChange={(e) => setIaPrompt(e.target.value)}
-                  placeholder="Sobre o que o n8n deve escrever hoje?"
+                  placeholder="Ex: 5 dicas para melhorar o agachamento..."
                   className="w-full bg-black border border-white/10 rounded-3xl p-8 outline-none focus:border-[#cfec0f] text-lg min-h-[220px] resize-none leading-relaxed transition-all"
                 />
               </div>
             </div>
 
             {errorMsg && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3">
+              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 animate-in shake">
                 <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={16} />
                 <p className="text-red-500 text-[10px] font-bold uppercase leading-relaxed">{errorMsg}</p>
               </div>
@@ -159,18 +159,16 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               <div className="w-16 h-16 bg-neon/10 rounded-2xl flex items-center justify-center text-neon">
                 <BrainCircuit size={32} />
               </div>
-              <h3 className="text-white font-black uppercase text-sm italic">Status da Automação</h3>
+              <h3 className="text-white font-black uppercase text-sm italic">Como acompanhar:</h3>
               <p className="text-zinc-500 text-xs font-medium leading-relaxed">
-                Ao clicar no botão, seu briefing é enviado para o <strong>n8n Cloud</strong>. 
-                Lá, a IA processa o texto, gera o SEO e salva diretamente no banco de dados. 
-                O post aparecerá na sua lista em alguns instantes.
+                1. O comando é enviado para o seu n8n Cloud.<br/>
+                2. O workflow valida o tema e gera o conteúdo.<br/>
+                3. O n8n salva o post no Supabase automaticamente.<br/>
+                4. Atualize a página de 'Meus Blogs' em 1-2 minutos para ver o resultado.
               </p>
               <div className="pt-6 border-t border-white/5 space-y-4">
                 <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-zinc-600">
-                  <CheckCircle size={14} className="text-neon" /> Conexão Segura SSL
-                </div>
-                <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-zinc-600">
-                  <CheckCircle size={14} className="text-neon" /> Sem processamento local
+                  <CheckCircle size={14} className="text-neon" /> Webhook: /blog-generator
                 </div>
               </div>
             </div>
@@ -202,7 +200,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               <div className="space-y-2">
                 <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Imagem de Capa</label>
                 <div 
-                  className="aspect-video bg-black border border-white/5 rounded-3xl overflow-hidden cursor-pointer flex items-center justify-center relative group"
+                  className="aspect-video bg-black border border-white/10 rounded-3xl overflow-hidden cursor-pointer flex items-center justify-center relative group"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {uploading ? <Loader2 className="animate-spin text-neon" /> : (
@@ -225,9 +223,12 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       )}
 
       {success && (
-        <div className="fixed bottom-12 right-12 bg-[#cfec0f] text-black px-10 py-6 rounded-3xl font-black uppercase tracking-widest shadow-2xl flex items-center gap-4 animate-in slide-in-from-right-12 z-[100]">
-          <ShieldCheck size={24} /> 
-          <span>Comando Recebido pelo n8n!</span>
+        <div className="fixed bottom-12 right-12 bg-[#cfec0f] text-black px-10 py-6 rounded-3xl font-black uppercase tracking-widest shadow-2xl flex flex-col gap-1 animate-in slide-in-from-right-12 z-[100]">
+          <div className="flex items-center gap-3">
+            <ShieldCheck size={24} /> 
+            <span className="text-sm">Sucesso na Nuvem!</span>
+          </div>
+          <p className="text-[8px] font-bold text-black/60 uppercase tracking-widest">O n8n confirmou o recebimento.</p>
         </div>
       )}
     </div>
