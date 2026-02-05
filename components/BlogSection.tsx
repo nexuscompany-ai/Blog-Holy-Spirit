@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Calendar as CalendarIcon, MapPin, ArrowLeft, Sparkles, BookOpen } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, ArrowLeft, Sparkles, BookOpen, MessageSquare } from 'lucide-react';
 import { dbService, HolyEvent, HolySettings } from '../db';
 import BlogCard from './BlogCard';
 
@@ -89,6 +89,7 @@ const BlogSection: React.FC = () => {
                 <p className="text-zinc-500 text-lg max-w-xl mx-auto">Transforme seu templo hoje mesmo. Comece sua jornada na Holy Spirit.</p>
                 <a 
                   href={`https://wa.me/${settings?.phone?.replace(/\D/g, '') || '5511999999999'}`}
+                  target="_blank"
                   className="btn-primary mx-auto inline-flex"
                 >
                   Matricule-se Agora
@@ -154,38 +155,44 @@ const BlogSection: React.FC = () => {
           </div>
         ) : (
           <div className="grid md:grid-cols-3 gap-8 animate-in fade-in duration-500">
-            {events.map((event) => (
-              <div key={event.id} className="glass-card rounded-[40px] overflow-hidden group">
-                <div className="aspect-[4/3] relative overflow-hidden">
-                  <img 
-                    src={event.image} 
-                    alt={event.title}
-                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-110"
-                  />
-                  <div className="absolute bottom-6 left-6">
-                    <span className="bg-neon text-black px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest">
-                      {event.category}
-                    </span>
+            {events.map((event) => {
+              const waLink = event.whatsappEnabled 
+                ? `https://wa.me/${event.whatsappNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(event.whatsappMessage || '')}${encodeURIComponent(event.title)}`
+                : `https://wa.me/${settings?.phone?.replace(/\D/g, '') || '5511999999999'}`;
+
+              return (
+                <div key={event.id} className="glass-card rounded-[40px] overflow-hidden group">
+                  <div className="aspect-[4/3] relative overflow-hidden">
+                    <img 
+                      src={event.image} 
+                      alt={event.title}
+                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-110"
+                    />
+                    <div className="absolute bottom-6 left-6">
+                      <span className="bg-neon text-black px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest">
+                        {event.category}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-10 space-y-6">
+                    <h3 className="text-2xl font-black italic uppercase tracking-tighter group-hover:text-neon transition-colors text-white">
+                      {event.title}
+                    </h3>
+                    <div className="space-y-3 text-zinc-500 text-[11px] font-black uppercase tracking-widest">
+                      <div className="flex items-center gap-3"><CalendarIcon size={16} className="text-neon" /> {new Date(event.date).toLocaleDateString('pt-BR')}</div>
+                      <div className="flex items-center gap-3"><MapPin size={16} className="text-neon" /> {event.location}</div>
+                    </div>
+                    <a 
+                      href={waLink}
+                      target="_blank"
+                      className="btn-primary w-full py-4 text-xs"
+                    >
+                      {event.whatsappEnabled ? 'Confirmar via WhatsApp' : 'Garantir Vaga'}
+                    </a>
                   </div>
                 </div>
-                <div className="p-10 space-y-6">
-                  <h3 className="text-2xl font-black italic uppercase tracking-tighter group-hover:text-neon transition-colors text-white">
-                    {event.title}
-                  </h3>
-                  <div className="space-y-3 text-zinc-500 text-[11px] font-black uppercase tracking-widest">
-                    <div className="flex items-center gap-3"><CalendarIcon size={16} className="text-neon" /> {new Date(event.date).toLocaleDateString('pt-BR')}</div>
-                    <div className="flex items-center gap-3"><MapPin size={16} className="text-neon" /> {event.location}</div>
-                  </div>
-                  <a 
-                    href={`https://wa.me/${settings?.phone?.replace(/\D/g, '') || '5511999999999'}`}
-                    target="_blank"
-                    className="btn-primary w-full py-4 text-xs"
-                  >
-                    Garantir Vaga
-                  </a>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {events.length === 0 && (
               <div className="col-span-full py-32 text-center glass-card rounded-[40px] border-dashed">
                  <CalendarIcon size={64} className="mx-auto text-zinc-800 mb-8" />

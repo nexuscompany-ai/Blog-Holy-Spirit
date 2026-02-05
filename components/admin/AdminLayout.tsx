@@ -11,6 +11,7 @@ import ManageEvents from './ManageEvents';
 import SettingsPage from './SettingsPage';
 import ManageAutomation from './ManageAutomation';
 import { dbService } from '../../db';
+import Logo from '../Logo';
 
 interface AdminLayoutProps {
   exitAdmin: () => void;
@@ -21,25 +22,20 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
 
   const menuItems = [
     { id: 'dashboard', label: 'Início', icon: <LayoutDashboard size={20} /> },
-    { id: 'create', label: 'Escritora IA', icon: <Sparkles size={20} /> },
+    { id: 'create', label: 'Escritora n8n', icon: <Sparkles size={20} /> },
     { id: 'automation', label: 'Auto-Pilot', icon: <Bot size={20} /> },
     { id: 'list', label: 'Meus Blogs', icon: <List size={20} /> },
     { id: 'event', label: 'Eventos', icon: <Calendar size={20} /> },
     { id: 'settings', label: 'Configurações', icon: <SettingsIcon size={20} /> },
   ];
 
-  const handleLogout = async () => {
-    await dbService.signOut();
-    window.location.reload();
-  };
-
   return (
-    <div className="flex min-h-screen bg-[#050505] text-white selection:bg-[#cfec0f] selection:text-black">
+    <div className="flex min-h-screen bg-[#050505] text-white selection:bg-neon selection:text-black">
       <aside className="w-64 border-r border-white/5 bg-black p-6 flex flex-col fixed h-full z-20">
-        <div className="flex items-center gap-2 mb-12">
-          <div className="w-6 h-6 bg-[#cfec0f] rounded-sm rotate-45"></div>
-          <span className="text-xl font-black tracking-tighter uppercase">
-            Holy<span className="text-[#cfec0f]">Admin</span>
+        <div className="flex items-center gap-3 mb-12">
+          <Logo className="w-8 h-8" />
+          <span className="text-xl font-black tracking-tighter uppercase italic">
+            Holy<span className="text-neon">Admin</span>
           </span>
         </div>
 
@@ -48,9 +44,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id as any)}
-              className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-300 group ${
+              className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
                 activeTab === item.id 
-                  ? 'bg-[#cfec0f] text-black shadow-lg shadow-[#cfec0f]/10' 
+                  ? 'bg-neon text-black' 
                   : 'text-gray-500 hover:bg-white/5 hover:text-white'
               }`}
             >
@@ -61,7 +57,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
         </nav>
 
         <button 
-          onClick={handleLogout}
+          onClick={() => dbService.signOut()}
           className="flex items-center gap-4 px-4 py-3 text-gray-500 hover:text-red-500 transition-colors text-sm font-bold border-t border-white/5 pt-6"
         >
           <LogOut size={20} />
@@ -75,8 +71,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
             <h1 className="text-4xl font-black uppercase italic tracking-tighter">
               {menuItems.find(i => i.id === activeTab)?.label}
             </h1>
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-2">
-              Templo Holy Spirit • Gestão Editorial
+            <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mt-2">
+              Holy Spirit • Gestão Editorial
             </p>
           </div>
         </header>

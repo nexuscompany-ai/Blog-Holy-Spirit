@@ -18,6 +18,17 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const isMounted = useRef(true);
 
+  const fetchSession = async () => {
+    try {
+      const sess = await dbService.getSession();
+      if (isMounted.current) setSession(sess);
+    } catch (err) {
+      console.error("Auth initialization failed:", err);
+    } finally {
+      if (isMounted.current) setLoading(false);
+    }
+  };
+
   useEffect(() => {
     isMounted.current = true;
 
@@ -26,37 +37,18 @@ export default function Home() {
     };
     window.addEventListener('popstate', handleLocationChange);
 
-    const fetchInitialSession = async () => {
-      try {
-        const sess = await dbService.getSession();
-        if (isMounted.current) {
-          setSession(sess);
-        }
-      } catch (err: any) {
-        if (err.name !== 'AbortError' && !err.message?.includes('aborted')) {
-          console.error("Critical Auth Error:", err);
-        }
-      } finally {
-        if (isMounted.current) {
-          setLoading(false);
-        }
-      }
-    };
+    fetchSession();
 
-    fetchInitialSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+    // Use type assertion to avoid property missing error on SupabaseAuthClient
+    const { data: authListener } = (supabase.auth as any).onAuthStateChange(async (event: any, currentSession: any) => {
       if (!isMounted.current) return;
-
       if (currentSession) {
-        try {
-          const profile = await dbService.getSession();
-          if (isMounted.current) setSession(profile);
-        } catch (e) {
-          // Silent fail for background auth changes
-        }
+        const profile = await dbService.getSession();
+        setSession(profile);
       } else {
-        if (isMounted.current) setSession(null);
+        // No modo demo, não limpamos se houver sessão manual
+        const demoSess = localStorage.getItem('holy_demo_session');
+        if (!demoSess) setSession(null);
       }
     });
 
@@ -70,6 +62,13 @@ export default function Home() {
   const navigate = (to: string) => {
     window.history.pushState({}, '', to);
     setPath(to);
+    window.scrollTo(0, 0);
+  };
+
+  const handleLoginSuccess = async () => {
+    // Re-busca a sessão imediatamente após o login bem-sucedido
+    await fetchSession();
+    navigate('/admin');
   };
 
   if (loading) {
@@ -77,15 +76,16 @@ export default function Home() {
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="flex flex-col items-center gap-6">
           <div className="w-12 h-12 border-4 border-neon border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-neon text-[10px] font-black uppercase tracking-[0.5em] animate-pulse">Iniciando Templo...</p>
+          <p className="text-neon text-[10px] font-black uppercase tracking-[0.5em] animate-pulse italic">Santificando Templo...</p>
         </div>
       </div>
     );
   }
 
+  // Admin Route Protection
   if (path.startsWith('/admin')) {
     if (!session || session.role !== 'admin') {
-      return <Login onLoginSuccess={() => navigate('/admin')} />;
+      return <Login onLoginSuccess={handleLoginSuccess} />;
     }
     return <AdminLayout exitAdmin={() => navigate('/')} />;
   }
@@ -93,7 +93,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-black selection:bg-neon selection:text-black">
       <Header />
-      <main className="flex-grow">
+      <main className="flex-grow animate-in fade-in duration-1000">
         <Hero />
         <WhyUs />
         <BlogSection />

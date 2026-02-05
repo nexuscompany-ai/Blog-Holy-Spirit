@@ -1,0 +1,8 @@
+<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer Teardrop Neon -->
+  <path d="M50 0C50 0 10 40 10 70C10 90 28 100 50 100C72 100 90 90 90 70C90 40 50 0 50 0Z" fill="#cfec0f"/>
+  <!-- Inner Teardrop Black -->
+  <path d="M50 30C50 30 25 50 25 70C25 82 36 88 50 88C64 88 75 82 75 70C75 50 50 30 50 30Z" fill="black"/>
+  <!-- Central Neon Triangle -->
+  <path d="M50 50L62 75H38L50 50Z" fill="#cfec0f"/>
+</svg>

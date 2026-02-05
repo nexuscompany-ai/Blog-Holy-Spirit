@@ -5,10 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Holy Spirit Gym | Treine o Templo</title>
+    
+    <!-- SEO Primário -->
+    <meta name="title" content="Holy Spirit Gym | Treine o Templo">
+    <meta name="description" content="A união perfeita entre performance física e bem-estar espiritual. Musculação, nutrição e lifestyle focado no seu templo.">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://holyspiritgym.com.br/">
+    <meta property="og:title" content="Holy Spirit Gym | Treine o Templo">
+    <meta property="og:description" content="A união perfeita entre performance física e bem-estar espiritual.">
+    <meta property="og:image" content="/icon.svg">
+
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -33,21 +46,20 @@
 <script type="importmap">
 {
   "imports": {
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.3",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "react/": "https://esm.sh/react@^19.2.4/",
     "react": "https://esm.sh/react@^19.2.4",
-    "@google/genai": "https://esm.sh/@google/genai@^1.39.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.94.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "vite": "https://esm.sh/vite@^7.3.1",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.94.0",
+    "@prisma/client": "https://esm.sh/@prisma/client@^7.3.0",
     "next/": "https://esm.sh/next@^16.1.6/",
-    "@prisma/client": "https://esm.sh/@prisma/client@^7.3.0"
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.3"
   }
 }
 </script>
 </head>
-<body class="bg-black">
+<body class="bg-black text-white antialiased selection:bg-neon selection:text-black">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>

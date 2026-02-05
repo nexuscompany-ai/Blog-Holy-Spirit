@@ -1,11 +1,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, MapPin, Clock, Plus, Trash2, CheckCircle2, Eye, EyeOff, Archive, Zap, Camera } from 'lucide-react';
+import { 
+  Calendar, MapPin, Clock, Plus, Trash2, CheckCircle2, 
+  Eye, EyeOff, Archive, Zap, Camera, MessageSquare, ShieldCheck
+} from 'lucide-react';
 import { dbService, HolyEvent } from '../../db';
 
 const ManageEvents: React.FC = () => {
   const [events, setEvents] = useState<HolyEvent[]>([]);
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [activeListTab, setActiveListTab] = useState<'active' | 'inactive'>('active');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -17,7 +21,10 @@ const ManageEvents: React.FC = () => {
     description: '',
     category: 'Workshop',
     status: 'active',
-    image: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&q=80&w=800'
+    image: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&q=80&w=800',
+    whatsappEnabled: false,
+    whatsappNumber: '',
+    whatsappMessage: 'Olá! Gostaria de confirmar minha vaga no evento: '
   });
 
   const loadEvents = async () => {
@@ -30,22 +37,35 @@ const ManageEvents: React.FC = () => {
   }, []);
 
   const saveEvent = async () => {
-    if (!newEvent.title || !newEvent.date) return;
-    const event: HolyEvent = { ...newEvent, id: Date.now().toString() };
-    await dbService.saveEvent(event);
-    setNewEvent({ 
-      title: '', 
-      date: '', 
-      time: '', 
-      location: '', 
-      description: '', 
-      category: 'Workshop', 
-      status: 'active',
-      image: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&q=80&w=800'
-    });
-    setSuccess(true);
-    await loadEvents();
-    setTimeout(() => setSuccess(false), 3000);
+    if (!newEvent.title || !newEvent.date) {
+      alert("Por favor, preencha o título e a data do evento.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const event: HolyEvent = { ...newEvent, id: Date.now().toString() };
+      await dbService.saveEvent(event);
+      setNewEvent({ 
+        title: '', 
+        date: '', 
+        time: '', 
+        location: '', 
+        description: '', 
+        category: 'Workshop', 
+        status: 'active',
+        image: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&q=80&w=800',
+        whatsappEnabled: false,
+        whatsappNumber: '',
+        whatsappMessage: 'Olá! Gostaria de confirmar minha vaga no evento: '
+      });
+      setSuccess(true);
+      await loadEvents();
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      alert("Erro ao salvar o evento.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,8 +80,10 @@ const ManageEvents: React.FC = () => {
   };
 
   const deleteEvent = async (id: string) => {
-    await dbService.deleteEvent(id);
-    await loadEvents();
+    if (confirm('Excluir este evento permanentemente?')) {
+      await dbService.deleteEvent(id);
+      await loadEvents();
+    }
   };
 
   const toggleStatus = async (id: string) => {
@@ -81,7 +103,7 @@ const ManageEvents: React.FC = () => {
           <div className="bg-[#cfec0f]/10 p-3 rounded-xl text-[#cfec0f]"><Plus size={24} /></div>
           <div>
             <h2 className="text-2xl font-black uppercase italic tracking-tight text-white">Consagrar Novo Evento</h2>
-            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Preencha os detalhes e escolha uma imagem impactante</p>
+            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Organize e divulgue experiências únicas no Templo</p>
           </div>
         </div>
 
@@ -93,8 +115,8 @@ const ManageEvents: React.FC = () => {
                 <input 
                   value={newEvent.title}
                   onChange={e => setNewEvent({...newEvent, title: e.target.value})}
-                  placeholder="Ex: Treino de Força Solidário"
-                  className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#cfec0f] transition-all"
+                  placeholder="Ex: Workshop de Nutrição"
+                  className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#cfec0f] transition-all text-sm"
                 />
               </div>
               <div className="space-y-2">
@@ -102,7 +124,7 @@ const ManageEvents: React.FC = () => {
                 <select 
                   value={newEvent.category}
                   onChange={e => setNewEvent({...newEvent, category: e.target.value})}
-                  className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#cfec0f]"
+                  className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#cfec0f] text-sm"
                 >
                   <option>Workshop</option>
                   <option>Treino Especial</option>
@@ -113,23 +135,62 @@ const ManageEvents: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Localização / Endereço</label>
+              <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Local do Evento</label>
               <input 
                 value={newEvent.location}
                 onChange={e => setNewEvent({...newEvent, location: e.target.value})}
-                placeholder="Av. Principal, 123 ou Templo Interno"
-                className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#cfec0f]"
+                placeholder="Av. das Nações ou Templo Interno"
+                className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#cfec0f] text-sm"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Descrição Curta</label>
+              <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Breve Descrição</label>
               <textarea 
                 value={newEvent.description}
                 onChange={e => setNewEvent({...newEvent, description: e.target.value})}
                 rows={3}
-                className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#cfec0f] resize-none"
+                placeholder="Explique o que acontecerá..."
+                className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#cfec0f] resize-none text-sm leading-relaxed"
               />
+            </div>
+
+            {/* WhatsApp CTA Section */}
+            <div className="bg-zinc-950 p-8 rounded-3xl border border-white/5 space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <MessageSquare className="text-[#cfec0f]" size={20} />
+                  <h4 className="text-[10px] font-black uppercase tracking-widest">Chamada para WhatsApp</h4>
+                </div>
+                <button 
+                  onClick={() => setNewEvent({...newEvent, whatsappEnabled: !newEvent.whatsappEnabled})}
+                  className={`w-12 h-6 rounded-full transition-all relative ${newEvent.whatsappEnabled ? 'bg-[#cfec0f]' : 'bg-zinc-800'}`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${newEvent.whatsappEnabled ? 'right-1' : 'left-1'}`}></div>
+                </button>
+              </div>
+
+              {newEvent.whatsappEnabled && (
+                <div className="grid md:grid-cols-2 gap-6 animate-in slide-in-from-top-2">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase text-gray-600 tracking-widest ml-1">Número WhatsApp</label>
+                    <input 
+                      value={newEvent.whatsappNumber}
+                      onChange={e => setNewEvent({...newEvent, whatsappNumber: e.target.value})}
+                      placeholder="11999999999"
+                      className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-xs outline-none focus:border-[#cfec0f]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase text-gray-600 tracking-widest ml-1">Mensagem Padrão</label>
+                    <input 
+                      value={newEvent.whatsappMessage}
+                      onChange={e => setNewEvent({...newEvent, whatsappMessage: e.target.value})}
+                      className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-xs outline-none focus:border-[#cfec0f]"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -140,7 +201,7 @@ const ManageEvents: React.FC = () => {
                 onClick={() => fileInputRef.current?.click()}
                 className="aspect-video bg-black border border-white/10 rounded-3xl overflow-hidden cursor-pointer group relative flex items-center justify-center"
               >
-                <img src={newEvent.image} className="w-full h-full object-cover group-hover:opacity-40 transition-all" />
+                <img src={newEvent.image} className="w-full h-full object-cover group-hover:opacity-40 transition-all" alt="Capa Preview" />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
                   <Camera className="text-[#cfec0f]" size={32} />
                 </div>
@@ -151,19 +212,20 @@ const ManageEvents: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Data</label>
-                <input type="date" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-xs outline-none focus:border-[#cfec0f]" />
+                <input type="date" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-xs outline-none focus:border-[#cfec0f] text-white" />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Horário</label>
-                <input type="time" value={newEvent.time} onChange={e => setNewEvent({...newEvent, time: e.target.value})} className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-xs outline-none focus:border-[#cfec0f]" />
+                <input type="time" value={newEvent.time} onChange={e => setNewEvent({...newEvent, time: e.target.value})} className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-xs outline-none focus:border-[#cfec0f] text-white" />
               </div>
             </div>
 
             <button 
               onClick={saveEvent}
-              className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl text-[11px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-[#cfec0f]/20"
+              disabled={loading}
+              className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl text-[11px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-[#cfec0f]/20 disabled:opacity-50"
             >
-              CRIAR EVENTO AGORA
+              {loading ? "PROCESSANDO..." : "PUBLICAR EVENTO"}
             </button>
           </div>
         </div>
@@ -176,13 +238,13 @@ const ManageEvents: React.FC = () => {
               onClick={() => setActiveListTab('active')}
               className={`px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeListTab === 'active' ? 'bg-[#cfec0f] text-black' : 'text-gray-500 hover:text-white'}`}
             >
-              Ativos ({events.filter(e => e.status === 'active').length})
+              No Feed ({events.filter(e => e.status === 'active').length})
             </button>
             <button 
               onClick={() => setActiveListTab('inactive')}
               className={`px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeListTab === 'inactive' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}
             >
-              Inativos ({events.filter(e => e.status === 'inactive').length})
+              Arquivados ({events.filter(e => e.status === 'inactive').length})
             </button>
           </div>
         </div>
@@ -191,12 +253,17 @@ const ManageEvents: React.FC = () => {
           {filteredEvents.map((event) => (
             <div key={event.id} className={`bg-zinc-900/20 border border-white/5 rounded-[40px] overflow-hidden group transition-all relative ${event.status === 'inactive' ? 'opacity-40 grayscale' : 'hover:border-[#cfec0f]/30'}`}>
               <div className="aspect-video relative overflow-hidden">
-                <img src={event.image} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700" />
+                <img src={event.image} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700" alt={event.title} />
                 <div className="absolute top-4 left-4">
                   <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-lg ${event.status === 'active' ? 'bg-[#cfec0f] text-black' : 'bg-zinc-800 text-gray-500'}`}>
                     {event.category}
                   </span>
                 </div>
+                {event.whatsappEnabled && (
+                  <div className="absolute top-4 right-4 bg-green-500 text-white p-2 rounded-full shadow-lg">
+                    <MessageSquare size={12} />
+                  </div>
+                )}
               </div>
               
               <div className="p-8 space-y-4">
@@ -217,18 +284,14 @@ const ManageEvents: React.FC = () => {
                 <div className="space-y-2 text-gray-500 text-[10px] font-black uppercase tracking-widest">
                   <div className="flex items-center gap-3"><Calendar size={14} className="text-[#cfec0f]" /> {new Date(event.date).toLocaleDateString('pt-BR')}</div>
                   <div className="flex items-center gap-3"><Clock size={14} className="text-[#cfec0f]" /> {event.time}</div>
-                  <div className="flex items-center gap-3 italic"><MapPin size={14} className="text-[#cfec0f]" /> {event.location || "Local não definido"}</div>
+                  <div className="flex items-center gap-3 italic"><MapPin size={14} className="text-[#cfec0f]" /> {event.location || "Local sob consulta"}</div>
                 </div>
-              </div>
-
-              <div className="absolute -bottom-4 -right-4 opacity-[0.03] rotate-12 group-hover:rotate-0 transition-transform">
-                {event.status === 'active' ? <Zap size={120} /> : <Archive size={120} />}
               </div>
             </div>
           ))}
           {filteredEvents.length === 0 && (
             <div className="col-span-full py-20 text-center border border-dashed border-white/5 rounded-3xl">
-              <p className="text-gray-600 text-xs font-bold uppercase">Nenhum evento nesta categoria.</p>
+              <p className="text-gray-600 text-xs font-bold uppercase">Nenhum evento registrado nesta lista.</p>
             </div>
           )}
         </div>
@@ -236,7 +299,7 @@ const ManageEvents: React.FC = () => {
 
       {success && (
         <div className="fixed bottom-10 right-10 bg-green-600 text-white px-8 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl flex items-center gap-4 animate-in slide-in-from-right-10 z-[110]">
-          <CheckCircle2 size={20} /> Evento Consagrado!
+          <ShieldCheck size={20} /> Evento Registrado no Templo!
         </div>
       )}
     </div>

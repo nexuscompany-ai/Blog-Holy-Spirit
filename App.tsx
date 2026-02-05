@@ -29,7 +29,8 @@ const App: React.FC = () => {
 
     fetchInitialSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+    // Use type assertion to avoid property missing error on SupabaseAuthClient
+    const { data: authListener } = (supabase.auth as any).onAuthStateChange(async (event: any, currentSession: any) => {
       if (currentSession) {
         const profile = await dbService.getSession();
         setSession(profile);

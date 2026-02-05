@@ -21,16 +21,20 @@ const CTABanner: React.FC = () => {
                 MERECE O MELHOR.
               </h2>
               <p className="text-zinc-500 text-xl md:text-2xl font-medium leading-relaxed">
-                Pare de perder tempo criando conteúdo genérico. Comece hoje a usar a inteligência que entende o seu negócio e fortalece sua comunidade.
+                Fortaleça sua jornada física e espiritual com quem entende a importância de cuidar do corpo como um templo sagrado.
               </p>
             </div>
 
             <div className="flex flex-col gap-6 w-full lg:w-auto">
-              <button className="btn-primary text-xl px-12 py-8 rounded-[32px] group">
-                Assinar Agora <ChevronRight size={24} className="group-hover:translate-x-2 transition-transform" />
-              </button>
+              <a 
+                href="https://wa.me/5511999999999" 
+                target="_blank"
+                className="btn-primary text-xl px-12 py-8 rounded-[32px] group"
+              >
+                Matricule-se Agora <ChevronRight size={24} className="group-hover:translate-x-2 transition-transform" />
+              </a>
               <p className="text-[10px] text-zinc-600 font-black uppercase tracking-[0.4em] text-center">
-                Teste Grátis por 7 dias • Sem Compromisso
+                Ganhe uma Aula Experimental Gratuita
               </p>
             </div>
           </div>
