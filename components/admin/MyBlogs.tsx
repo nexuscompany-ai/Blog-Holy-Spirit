@@ -1,22 +1,53 @@
 
 import React, { useEffect, useState } from 'react';
-import { Eye, Trash2, BrainCircuit, User, RefreshCw, Clock, Globe } from 'lucide-react';
+import { Eye, Trash2, BrainCircuit, User, RefreshCw, Clock, Globe, AlertCircle } from 'lucide-react';
 import { BlogPost } from '../BlogSection';
 import { dbService } from '../../db';
+import { usePollServer } from '../../lib/usePollServer';
 
 const MyBlogs: React.FC = () => {
   const [blogs, setBlogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [newBlogsCount, setNewBlogsCount] = useState(0);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   const loadBlogs = async () => {
     setLoading(true);
+    setSyncError(null);
     try {
       const saved = await dbService.getBlogs();
       setBlogs(saved);
+      setLastSyncTime(new Date());
+    } catch (error) {
+      setSyncError('Erro ao sincronizar blogs');
+      console.error('Erro ao carregar blogs:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Usar polling automático para sincronizar com o servidor
+  usePollServer({
+    url: '/api/posts/sync',
+    interval: 5000, // A cada 5 segundos
+    enabled: true,
+    onSuccess: (data) => {
+      if (data.posts && Array.isArray(data.posts)) {
+        const newCount = data.posts.length - blogs.length;
+        if (newCount > 0) {
+          setNewBlogsCount(newCount);
+        }
+        setBlogs(data.posts);
+        setLastSyncTime(new Date());
+        setSyncError(null);
+      }
+    },
+    onError: (error) => {
+      console.error('Erro ao sincronizar:', error);
+      setSyncError('Erro na sincronização automática');
+    }
+  });
 
   useEffect(() => {
     loadBlogs();
@@ -31,8 +62,31 @@ const MyBlogs: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {syncError && (
+        <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 p-4 rounded-[16px]">
+          <AlertCircle size={16} className="text-red-500" />
+          <p className="text-sm text-red-400">{syncError}</p>
+        </div>
+      )}
+
+      {newBlogsCount > 0 && (
+        <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/30 p-4 rounded-[16px]">
+          <BrainCircuit size={16} className="text-green-500 animate-pulse" />
+          <p className="text-sm text-green-400">
+            {newBlogsCount} novo{newBlogsCount !== 1 ? 's' : ''} blog{newBlogsCount !== 1 ? 's' : ''} recebido{newBlogsCount !== 1 ? 's' : ''} do n8n!
+          </p>
+        </div>
+      )}
+
       <div className="flex justify-between items-center bg-zinc-900/20 p-6 rounded-[32px] border border-white/5">
-        <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500">Gestão de Conteúdo</h3>
+        <div className="flex flex-col gap-1">
+          <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500">Gestão de Conteúdo</h3>
+          {lastSyncTime && (
+            <p className="text-[9px] text-zinc-600">
+              Sincronizado há {Math.round((Date.now() - lastSyncTime.getTime()) / 1000)}s
+            </p>
+          )}
+        </div>
         <button 
           onClick={loadBlogs} 
           disabled={loading}
