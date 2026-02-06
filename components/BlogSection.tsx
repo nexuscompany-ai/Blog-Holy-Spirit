@@ -35,19 +35,26 @@ const BlogSection: React.FC = () => {
           dbService.getSettings()
         ]);
 
-        // REGRAS DE EXIBIÇÃO PÚBLICA:
-        // 1. Somente status 'published'
-        // 2. Data de publicação menor ou igual a hoje
+        // FILTRO RÍGIDO DE PRODUÇÃO:
+        // Apenas 'published' e cuja data de publicação já passou.
         const now = new Date();
         const publishedPosts = allPosts.filter((p: any) => {
-          if (p.status !== 'published') return false;
+          // Garante compatibilidade com posts antigos que não tinham 'status' (presumidos publicados)
+          const isActuallyPublished = p.status === 'published' || (!p.status && p.publishedAt);
+          
+          if (!isActuallyPublished) return false;
           if (!p.publishedAt) return false;
+          
           return new Date(p.publishedAt) <= now;
-        }).sort((a: any, b: any) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+        }).sort((a: any, b: any) => {
+          return new Date(b.publishedAt || b.createdAt).getTime() - new Date(a.publishedAt || a.createdAt).getTime();
+        });
 
         setPosts(publishedPosts);
         setEvents(allEvents.filter(e => e.status === 'active'));
         setSettings(currentSettings);
+      } catch (err) {
+        console.error("Erro ao carregar feed público:", err);
       } finally {
         setLoading(false);
       }
@@ -77,7 +84,7 @@ const BlogSection: React.FC = () => {
             <ArrowLeft size={16} /> Voltar para o Feed
           </button>
 
-          <article className="space-y-16">
+          <article className="space-y-16 animate-in fade-in duration-700">
             <header className="space-y-8 text-center">
               <span className="bg-neon text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">
                 {selectedPost.category}
@@ -95,7 +102,7 @@ const BlogSection: React.FC = () => {
               <img src={selectedPost.image} alt={selectedPost.title} className="w-full h-full object-cover" />
             </div>
 
-            <div className="prose prose-invert max-w-none text-zinc-400 text-xl leading-loose space-y-10 font-medium">
+            <div className="prose prose-invert max-w-none text-zinc-400 text-xl leading-loose space-y-10 font-medium pb-20">
               <div dangerouslySetInnerHTML={{ __html: selectedPost.content }} />
             </div>
 

@@ -54,16 +54,20 @@ export interface DashboardMetrics {
   automationActive: boolean;
 }
 
-// Helper para gerar slug determinístico no frontend caso necessário
-const generateSlug = (title: string) => {
-  return title
+/**
+ * Utilitário de Gerenciamento de Slugs (SEO + Unicidade)
+ */
+const createSlug = (text: string) => {
+  const cleanText = text
     .toLowerCase()
     .trim()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '') + '-' + Math.random().toString(36).substring(2, 7);
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .replace(/[^\w\s-]/g, '')        // Remove especiais
+    .replace(/[\s_-]+/g, '-')       // Espaços para -
+    .replace(/^-+|-+$/g, '');       // Trim -
+    
+  return `${cleanText}-${Math.random().toString(36).substring(2, 7)}`;
 };
 
 export const dbService = {
@@ -161,15 +165,22 @@ export const dbService = {
     return data || [];
   },
 
+  /**
+   * CRIAÇÃO DE POSTS (Explícita)
+   */
   async saveBlog(post: any) {
     const now = new Date().toISOString();
-    const slug = post.slug || generateSlug(post.title);
+    const slug = post.slug || createSlug(post.title || 'post');
     
     const finalPost = {
-      ...post,
+      title: post.title,
       slug: slug.toLowerCase(),
-      status: post.status || 'draft',
+      content: post.content,
+      excerpt: post.excerpt || post.content?.substring(0, 160).replace(/<[^>]*>/g, '') || '',
+      category: post.category || 'Geral',
+      image: post.image || 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
       source: post.source || 'manual',
+      status: post.status || 'draft',
       createdAt: now,
       updatedAt: now,
       publishedAt: post.status === 'published' ? (post.publishedAt || now) : null
@@ -186,14 +197,21 @@ export const dbService = {
     if (error) throw error;
   },
 
+  /**
+   * ATUALIZAÇÃO DE POSTS (Publicação Manual)
+   */
   async updateBlog(id: string, updates: any) {
     const now = new Date().toISOString();
+    
+    // Se estiver mudando para publicado agora
     const finalUpdates = {
       ...updates,
-      updatedAt: now,
-      // Se mudar para publicado, garante a data de publicação
-      ...(updates.status === 'published' && !updates.publishedAt ? { publishedAt: now } : {})
+      updatedAt: now
     };
+
+    if (updates.status === 'published' && !updates.publishedAt) {
+      finalUpdates.publishedAt = now;
+    }
 
     if (isDemoMode) {
       const current = await this.getBlogs();
