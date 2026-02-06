@@ -22,7 +22,7 @@ export default async function handler(req: Request) {
     const body = await req.json().catch(() => ({}));
     const { prompt, category, mode, postData } = body;
 
-    const N8N_WEBHOOK_URL = "https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator";
+    const N8N_WEBHOOK_URL = "https://felipealmeida0777.app.n8n.cloud/webhook/receberblog";
 
     // SHAPE DE DADOS EXPLICITO PARA O N8N
     const payload = {
