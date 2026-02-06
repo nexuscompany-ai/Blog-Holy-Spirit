@@ -66,6 +66,29 @@ const createSlug = (text: string) => {
   return `${cleanText}-${Math.random().toString(36).substring(2, 7)}`;
 };
 
+/**
+ * Função utilitária para converter chaves camelCase para snake_case
+ * Isso evita o erro 400 no Supabase quando tentamos atualizar colunas que não existem (ex: updatedAt vs updated_at)
+ */
+const mapToSnakeCase = (obj: any) => {
+  const mapping: Record<string, string> = {
+    'createdAt': 'created_at',
+    'updatedAt': 'updated_at',
+    'publishedAt': 'published_at',
+    'whatsappEnabled': 'whatsappEnabled', // Caso especial mantido no schema SQL
+  };
+
+  const newObj: any = {};
+  for (const key in obj) {
+    if (mapping[key]) {
+      newObj[mapping[key]] = obj[key];
+    } else {
+      newObj[key] = obj[key];
+    }
+  }
+  return newObj;
+};
+
 export const dbService = {
   async login(email: string, pass: string) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
@@ -141,6 +164,7 @@ export const dbService = {
         .order('created_at', { ascending: false });
       
       if (error) {
+        // Fallback para createdAt se created_at falhar (erro 400)
         const { data: retryData, error: retryError } = await supabase
           .from('posts')
           .select('*')
@@ -159,7 +183,8 @@ export const dbService = {
     const now = new Date().toISOString();
     const slug = post.slug || createSlug(post.title || 'post');
     
-    const finalPost = {
+    // Preparar objeto para inserção garantindo snake_case (nativo Postgres)
+    const finalPost: any = {
       title: post.title,
       slug: slug.toLowerCase(),
       content: post.content,
@@ -170,42 +195,48 @@ export const dbService = {
       status: post.status || 'draft',
       created_at: now,
       updated_at: now,
-      published_at: (post.status === 'published') ? (post.publishedAt || now) : null,
-      createdAt: now,
-      updatedAt: now,
-      publishedAt: (post.status === 'published') ? (post.publishedAt || now) : null
+      published_at: (post.status === 'published') ? (post.publishedAt || now) : null
     };
     
     const { error } = await supabase.from('posts').insert([finalPost]);
-    if (error) throw error;
+    if (error) {
+      console.error("Erro ao salvar blog:", error);
+      throw error;
+    }
   },
 
   async updateBlog(id: string, updates: any) {
     const now = new Date().toISOString();
     
-    // Mapeamento inteligente para garantir que ambos os estilos de coluna sejam atualizados
-    const finalUpdates: any = { 
-      ...updates, 
-      updated_at: now, 
-      updatedAt: now 
-    };
-
-    // Sincroniza campos de publicação se presentes
+    // 1. Limpar e mapear os updates
+    const cleanedUpdates = { ...updates };
+    
+    // Se estiver publicando, define as datas
     if (updates.status === 'published') {
-      const pubDate = updates.publishedAt || now;
-      finalUpdates.publishedAt = pubDate;
-      finalUpdates.published_at = pubDate;
+      cleanedUpdates.publishedAt = updates.publishedAt || now;
     } else if (updates.status === 'draft') {
-      finalUpdates.publishedAt = null;
-      finalUpdates.published_at = null;
+      cleanedUpdates.publishedAt = null;
     }
 
-    const { error } = await supabase.from('posts').update(finalUpdates).eq('id', id);
-    if (error) throw error;
+    cleanedUpdates.updatedAt = now;
+
+    // 2. Converte tudo para snake_case para evitar o erro 400 de "coluna inexistente"
+    const snakeCaseUpdates = mapToSnakeCase(cleanedUpdates);
+
+    const { error } = await supabase
+      .from('posts')
+      .update(snakeCaseUpdates)
+      .eq('id', id);
+
+    if (error) {
+      console.error("Erro Supabase Update:", error);
+      throw error;
+    }
   },
 
   async deleteBlog(id: string) {
-    await supabase.from('posts').delete().eq('id', id);
+    const { error } = await supabase.from('posts').delete().eq('id', id);
+    if (error) throw error;
   },
 
   async getEvents() {
@@ -219,15 +250,18 @@ export const dbService = {
   },
 
   async saveEvent(event: any) {
-    await supabase.from('events').insert([event]);
+    const { error } = await supabase.from('events').insert([event]);
+    if (error) throw error;
   },
 
   async updateEvent(id: string, updates: Partial<HolyEvent>) {
-    await supabase.from('events').update(updates).eq('id', id);
+    const { error } = await supabase.from('events').update(updates).eq('id', id);
+    if (error) throw error;
   },
 
   async deleteEvent(id: string) {
-    await supabase.from('events').delete().eq('id', id);
+    const { error } = await supabase.from('events').delete().eq('id', id);
+    if (error) throw error;
   },
 
   async getAutomationSettings(): Promise<AutomationSettings> {
@@ -242,6 +276,7 @@ export const dbService = {
   },
 
   async saveAutomationSettings(settings: AutomationSettings) {
-    await supabase.from('automation_settings').upsert({ ...settings, id: 'config' });
+    const { error } = await supabase.from('automation_settings').upsert({ ...settings, id: 'config' });
+    if (error) throw error;
   }
 };
