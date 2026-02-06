@@ -30,16 +30,31 @@ const BlogSection: React.FC = () => {
       setLoading(true);
       try {
         const [allPosts, allEvents, currentSettings] = await Promise.all([
-          dbService.getPublishedBlogs(),
+          dbService.getBlogs(),
           dbService.getEvents(),
           dbService.getSettings()
         ]);
 
-        setPosts(allPosts);
+        const now = new Date();
+        const publishedPosts = allPosts.filter((p: any) => {
+          // Lógica de publicação:
+          // 1. Status deve ser explicitamente 'published'
+          // 2. OU se não houver campo status (post antigo), ele deve ter data de publicação
+          const isPublished = p.status === 'published' || (!p.status && p.publishedAt);
+          const datePassed = p.publishedAt ? new Date(p.publishedAt) <= now : true;
+          
+          return isPublished && datePassed;
+        }).sort((a: any, b: any) => {
+          const dateA = new Date(a.publishedAt || a.createdAt).getTime();
+          const dateB = new Date(b.publishedAt || b.createdAt).getTime();
+          return dateB - dateA;
+        });
+
+        setPosts(publishedPosts);
         setEvents(allEvents.filter(e => e.status === 'active'));
         setSettings(currentSettings);
       } catch (err) {
-        console.error("Erro ao carregar feed público:", err);
+        console.error("Erro no feed público:", err);
       } finally {
         setLoading(false);
       }

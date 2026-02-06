@@ -24,29 +24,21 @@ export default async function handler(req: Request) {
 
     const N8N_WEBHOOK_URL = "https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator";
 
-     const normalizedMode = mode || 'preview';
-    const isPublish = normalizedMode === 'publish';
-    const now = new Date().toISOString();
-    const normalizedStatus = isPublish ? 'published' : 'draft';
-    const normalizedPublishedAt = isPublish ? now : null;
-
     // SHAPE DE DADOS EXPLICITO E SEGURO PARA O N8N
     const payload = {
-      mode: normalizedMode,
+      mode: mode || 'preview',
       tema: prompt,
       categoria: category || 'Musculação',
       origem: 'holy_spirit_admin',
-      timestamp: now,
+      timestamp: new Date().toISOString(),
       // REGRAS DE ARQUITETURA:
       // Posts automáticos entram SEMPRE como rascunho
-      status: normalizedStatus, 
+      status: 'draft', 
       source: 'ai',
-      published_at: normalizedPublishedAt,
-      publishedAt: normalizedPublishedAt,
-      ...(isPublish ? { ...postData, status: normalizedStatus, published_at: normalizedPublishedAt, publishedAt: normalizedPublishedAt } : {
-        
-      });
-        
+      published_at: null,
+      ...(mode === 'publish' ? { ...postData } : {})
+    };
+
     const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: {

@@ -9,9 +9,9 @@ const getEnv = (name: string) => {
 };
 
 const supabaseUrl = getEnv('VITE_SUPABASE_URL') || 'https://xkapuhuuqqjmcxxrnpcf.supabase.co';
-const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY');
+const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrYXB1aHV1cXFqbWN4eHJucGNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2Mjk0MTIsImV4cCI6MjA4NTIwNTQxMn0.tbA_C45JUPLUwIOb8IUsf2TGqW57MBIpLiG2z8i3NPE';
 
-export const supabase = createClient(supabaseUrl, supabaseKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy');
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 const isDemoMode = !supabaseKey || supabaseKey.includes('sua_chave') || supabaseKey === 'MISSING_ANON_KEY';
 
@@ -58,6 +58,7 @@ export interface DashboardMetrics {
  * Utilitário de Gerenciamento de Slugs (SEO + Unicidade)
  */
 const createSlug = (text: string) => {
+  if (!text) return `post-${Math.random().toString(36).substring(2, 7)}`;
   const cleanText = text
     .toLowerCase()
     .trim()
@@ -72,14 +73,16 @@ const createSlug = (text: string) => {
 
 export const dbService = {
   async login(email: string, pass: string) {
-    if (isDemoMode) {
-      const mockSession = { user: { id: 'demo-user', email }, role: 'admin' };
-      localStorage.setItem('holy_demo_session', JSON.stringify(mockSession));
-      return mockSession;
-    }
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
+    
+    // Busca o perfil para verificar o role
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .maybeSingle();
+
     if (profile?.role !== 'admin') {
       await supabase.auth.signOut();
       throw new Error('Acesso restrito a administradores.');
@@ -88,14 +91,10 @@ export const dbService = {
   },
 
   async getSession() {
-    if (isDemoMode) {
-      const saved = localStorage.getItem('holy_demo_session');
-      return saved ? JSON.parse(saved) : null;
-    }
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return null;
     try {
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
       return { user: session.user, role: profile?.role || 'user' };
     } catch {
       return { user: session.user, role: 'user' };
@@ -103,8 +102,7 @@ export const dbService = {
   },
 
   async signOut() {
-    localStorage.removeItem('holy_demo_session');
-    if (!isDemoMode) await supabase.auth.signOut();
+    await supabase.auth.signOut();
     window.location.href = '/';
   },
 
@@ -128,10 +126,6 @@ export const dbService = {
       address: 'Av. das Nações, 1000 - SP',
       website: 'www.holyspiritgym.com.br'
     };
-    if (isDemoMode) {
-      const saved = localStorage.getItem('holy_settings');
-      return saved ? JSON.parse(saved) : defaultSettings;
-    }
     try {
       const { data } = await supabase.from('settings').select('*').maybeSingle();
       return data || defaultSettings;
@@ -141,18 +135,10 @@ export const dbService = {
   },
 
   async saveSettings(settings: HolySettings) {
-    if (isDemoMode) {
-      localStorage.setItem('holy_settings', JSON.stringify(settings));
-      return;
-    }
     await supabase.from('settings').upsert({ ...settings, id: 'config' });
   },
 
   async getBlogs() {
-    if (isDemoMode) {
-      const saved = localStorage.getItem('holy_blogs');
-      return saved ? JSON.parse(saved) : [];
-    }
     const { data, error } = await supabase
       .from('posts')
       .select('*')
@@ -165,31 +151,6 @@ export const dbService = {
     return data || [];
   },
 
-   async getPublishedBlogs() {
-    if (isDemoMode) {
-      const saved = localStorage.getItem('holy_blogs');
-      const posts = saved ? JSON.parse(saved) : [];
-      return posts
-        .filter((post: any) => post.status === 'published')
-        .sort((a: any, b: any) => {
-          return new Date(b.publishedAt || b.createdAt).getTime() - new Date(a.publishedAt || a.createdAt).getTime();
-        });
-    }
-
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('status', 'published')
-      .order('publishedAt', { ascending: false });
-
-    if (error) {
-      console.error("Erro ao buscar blogs publicados:", error);
-      return [];
-    }
-    return data || [];
-  },/**
-   * CRIAÇÃO DE POSTS (Explícita)
-   */
   async saveBlog(post: any) {
     const now = new Date().toISOString();
     const slug = post.slug || createSlug(post.title || 'post');
@@ -205,107 +166,62 @@ export const dbService = {
       status: post.status || 'draft',
       createdAt: now,
       updatedAt: now,
-      publishedAt: post.status === 'published' ? (post.publishedAt || now) : null
+      publishedAt: (post.status === 'published' || post.published === true) ? (post.publishedAt || now) : null
     };
-
-    if (isDemoMode) {
-      const current = await this.getBlogs();
-      const newPost = { ...finalPost, id: Math.random().toString(36).substr(2, 9) };
-      localStorage.setItem('holy_blogs', JSON.stringify([newPost, ...current]));
-      return;
-    }
     
     const { error } = await supabase.from('posts').insert([finalPost]);
-    if (error) throw error;
+    if (error) {
+      console.error("Erro ao inserir post:", error);
+      throw error;
+    }
   },
 
-  /**
-   * ATUALIZAÇÃO DE POSTS (Publicação Manual)
-   */
   async updateBlog(id: string, updates: any) {
     const now = new Date().toISOString();
     
-    // Se estiver mudando para publicado agora
     const finalUpdates = {
       ...updates,
       updatedAt: now
     };
 
+    // Se estiver mudando para publicado agora e não tiver data definida
     if (updates.status === 'published' && !updates.publishedAt) {
       finalUpdates.publishedAt = now;
     }
 
-    if (isDemoMode) {
-      const current = await this.getBlogs();
-      const updated = current.map((b: any) => b.id === id ? { ...b, ...finalUpdates } : b);
-      localStorage.setItem('holy_blogs', JSON.stringify(updated));
-      return;
-    }
-    
     const { error } = await supabase.from('posts').update(finalUpdates).eq('id', id);
     if (error) throw error;
   },
 
   async deleteBlog(id: string) {
-    if (isDemoMode) {
-      const current = await this.getBlogs();
-      localStorage.setItem('holy_blogs', JSON.stringify(current.filter((b: any) => b.id !== id)));
-      return;
-    }
-    await supabase.from('posts').delete().eq('id', id);
+    const { error } = await supabase.from('posts').delete().eq('id', id);
+    if (error) throw error;
   },
 
   async getEvents() {
-    if (isDemoMode) {
-      const saved = localStorage.getItem('holy_events');
-      return saved ? JSON.parse(saved) : [];
-    }
     const { data } = await supabase.from('events').select('*').order('date', { ascending: true });
     return data || [];
   },
 
   async saveEvent(event: any) {
-    if (isDemoMode) {
-      const current = await this.getEvents();
-      localStorage.setItem('holy_events', JSON.stringify([...current, event]));
-      return;
-    }
     await supabase.from('events').insert([event]);
   },
 
   async updateEvent(id: string, updates: Partial<HolyEvent>) {
-    if (isDemoMode) {
-      const current = await this.getEvents();
-      localStorage.setItem('holy_events', JSON.stringify(current.map((e: any) => e.id === id ? { ...e, ...updates } : e)));
-      return;
-    }
     await supabase.from('events').update(updates).eq('id', id);
   },
 
   async deleteEvent(id: string) {
-    if (isDemoMode) {
-      const current = await this.getEvents();
-      localStorage.setItem('holy_events', JSON.stringify(current.filter((e: any) => e.id !== id)));
-      return;
-    }
     await supabase.from('events').delete().eq('id', id);
   },
 
   async getAutomationSettings(): Promise<AutomationSettings> {
     const defaults: AutomationSettings = { enabled: false, frequency_days: 3, topics: '', target_category: 'Musculação' };
-    if (isDemoMode) {
-      const saved = localStorage.getItem('holy_automation');
-      return saved ? JSON.parse(saved) : defaults;
-    }
     const { data } = await supabase.from('automation_settings').select('*').maybeSingle();
     return data || defaults;
   },
 
   async saveAutomationSettings(settings: AutomationSettings) {
-    if (isDemoMode) {
-      localStorage.setItem('holy_automation', JSON.stringify(settings));
-      return;
-    }
     await supabase.from('automation_settings').upsert({ ...settings, id: 'config' });
   }
 };

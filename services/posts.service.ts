@@ -16,7 +16,6 @@ export class PostsService {
       .replace(/[\s_-]+/g, '-')       // Espaços para -
       .replace(/^-+|-+$/g, '');       // Trim de -
 
-    // Adiciona sufixo aleatório curto para garantir unicidade absoluta
     const suffix = Math.random().toString(36).substring(2, 7);
     return `${clean}-${suffix}`;
   }
@@ -41,7 +40,6 @@ export class PostsService {
     });
   }
 
-  // Fix: Added missing getBySlug method to allow retrieval of single post by its slug
   static async getBySlug(slug: string) {
     return await prisma.post.findUnique({
       where: { slug: slug.toLowerCase() },
@@ -60,7 +58,7 @@ export class PostsService {
         content: data.content,
         category: data.category,
         image: data.image,
-        source: data.source,
+        source: data.source || 'manual',
         status: data.status || 'draft',
         createdAt: now,
         updatedAt: now,
@@ -72,7 +70,6 @@ export class PostsService {
   static async update(id: string, data: any) {
     const now = new Date().toISOString();
     
-    // Se estiver publicando agora e não tiver data, define
     if (data.status === 'published' && !data.publishedAt) {
       data.publishedAt = now;
     }

@@ -13,7 +13,7 @@ import Login from '../components/admin/Login';
 import { dbService, supabase } from '../db';
 
 export default function Home() {
-  const [path, setPath] = useState(typeof window !== 'undefined' ? window.location.pathname : '/');
+  const [path, setPath] = useState('/');
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const isMounted = useRef(true);
@@ -23,7 +23,7 @@ export default function Home() {
       const sess = await dbService.getSession();
       if (isMounted.current) setSession(sess);
     } catch (err) {
-      console.error("Auth initialization failed:", err);
+      console.error("Erro ao inicializar sessão:", err);
     } finally {
       if (isMounted.current) setLoading(false);
     }
@@ -31,6 +31,7 @@ export default function Home() {
 
   useEffect(() => {
     isMounted.current = true;
+    setPath(window.location.pathname);
 
     const handleLocationChange = () => {
       if (isMounted.current) setPath(window.location.pathname);
@@ -39,16 +40,13 @@ export default function Home() {
 
     fetchSession();
 
-    // Use type assertion to avoid property missing error on SupabaseAuthClient
     const { data: authListener } = (supabase.auth as any).onAuthStateChange(async (event: any, currentSession: any) => {
       if (!isMounted.current) return;
       if (currentSession) {
         const profile = await dbService.getSession();
         setSession(profile);
       } else {
-        // No modo demo, não limpamos se houver sessão manual
-        const demoSess = localStorage.getItem('holy_demo_session');
-        if (!demoSess) setSession(null);
+        setSession(null);
       }
     });
 
@@ -66,7 +64,6 @@ export default function Home() {
   };
 
   const handleLoginSuccess = async () => {
-    // Re-busca a sessão imediatamente após o login bem-sucedido
     await fetchSession();
     navigate('/admin');
   };
