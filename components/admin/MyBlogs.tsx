@@ -2,8 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Eye, Trash2, BrainCircuit, User, RefreshCw, 
-  Clock, Globe, AlertCircle, CheckCircle, Database, 
-  Sparkles, Search, Rocket, EyeOff, FileText
+  Globe, Database, Search, Rocket, EyeOff, FileText
 } from 'lucide-react';
 import { dbService } from '../../db';
 
@@ -46,18 +45,19 @@ const MyBlogs: React.FC = () => {
   const togglePublish = async (blog: any) => {
     if (!blog.id) return;
     
-    const isCurrentlyPublished = blog.published === true || blog.status === 'published';
-    const newPublishedState = !isCurrentlyPublished;
+    // A única fonte da verdade para publicação agora é published_at
+    const isCurrentlyPublished = blog.published_at !== null && blog.published_at !== undefined;
+    const newPublishedAt = isCurrentlyPublished ? null : new Date().toISOString();
     
     setLoading(true);
     try {
-      // Isola a ação de publicação apenas na tabela posts
+      // Isola a ação de publicação apenas na tabela posts usando o campo de data
       await dbService.updateBlog(blog.id, { 
-        published: newPublishedState 
+        published_at: newPublishedAt 
       });
       await performDeepSync();
     } catch (err: any) {
-      console.error("Toggle Publish Error:", err);
+      console.error("Toggle Publish Error (published_at):", err);
       alert(`Erro ao alterar status: ${err.message || 'Verifique o console para detalhes.'}`);
     } finally {
       setLoading(false);
@@ -101,15 +101,16 @@ const MyBlogs: React.FC = () => {
             <thead>
               <tr className="bg-black/40 border-b border-white/5">
                 <th className="px-8 py-6 text-[10px] font-black uppercase text-zinc-600 tracking-widest">Postagem</th>
-                <th className="px-8 py-6 text-[10px] font-black uppercase text-zinc-600 tracking-widest">Status / Estado</th>
+                <th className="px-8 py-6 text-[10px] font-black uppercase text-zinc-600 tracking-widest">Status de Publicação</th>
                 <th className="px-8 py-6 text-[10px] font-black uppercase text-zinc-600 tracking-widest">Origem</th>
                 <th className="px-8 py-6 text-[10px] font-black uppercase text-zinc-600 tracking-widest text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {blogs.map((blog) => {
-                const isPublished = blog.published === true || blog.status === 'published';
-                const pDate = blog.published_at || blog.publishedAt;
+                // Verificação estrita pelo campo de data
+                const isPublished = blog.published_at !== null && blog.published_at !== undefined;
+                const pDate = blog.published_at;
                 
                 return (
                   <tr key={blog.id} className="hover:bg-white/5 transition-colors group">
@@ -136,15 +137,13 @@ const MyBlogs: React.FC = () => {
                           <span className="flex items-center gap-2 text-[9px] font-black uppercase px-4 py-1.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/10 w-fit">
                             <Globe size={10} /> Publicado
                           </span>
-                          {pDate && (
-                            <span className="text-[8px] text-zinc-600 font-bold uppercase ml-2 italic">
-                              {new Date(pDate).toLocaleDateString('pt-BR')}
-                            </span>
-                          )}
+                          <span className="text-[8px] text-zinc-600 font-bold uppercase ml-2 italic">
+                            Desde {new Date(pDate).toLocaleDateString('pt-BR')}
+                          </span>
                         </div>
                       ) : (
                         <span className="flex items-center gap-2 text-[9px] font-black uppercase px-4 py-1.5 rounded-full bg-zinc-800 text-zinc-500 border border-white/5 w-fit">
-                          <FileText size={10} /> Rascunho
+                          <FileText size={10} /> Rascunho Interno
                         </span>
                       )}
                     </td>
@@ -166,7 +165,7 @@ const MyBlogs: React.FC = () => {
                           }`}
                         >
                           {isPublished ? <EyeOff size={14} /> : <Rocket size={14} />}
-                          {isPublished ? 'Remover' : 'Lançar'}
+                          {isPublished ? 'Despublicar' : 'Lançar no Templo'}
                         </button>
                         <button 
                           onClick={() => deleteBlog(blog.id)} 
@@ -184,7 +183,7 @@ const MyBlogs: React.FC = () => {
                   <td colSpan={4} className="px-8 py-32 text-center">
                     <div className="flex flex-col items-center gap-4 opacity-40">
                       <Search size={48} className="text-zinc-700" />
-                      <p className="text-zinc-600 font-black uppercase text-xs tracking-[0.3em]">O Templo está silencioso. Gere ou crie um post.</p>
+                      <p className="text-zinc-600 font-black uppercase text-xs tracking-[0.3em]">Nenhuma palavra sagrada encontrada.</p>
                     </div>
                   </td>
                 </tr>

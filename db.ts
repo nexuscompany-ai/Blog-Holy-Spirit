@@ -66,30 +66,6 @@ const createSlug = (text: string) => {
   return `${cleanText}-${Math.random().toString(36).substring(2, 7)}`;
 };
 
-/**
- * Mapeamento estrito para evitar o envio de colunas que podem não existir no banco.
- * Prioriza snake_case mas mantém suporte a colunas citadas se o usuário as criou assim.
- */
-const mapToSnakeCase = (obj: any) => {
-  const mapping: Record<string, string> = {
-    'createdAt': 'created_at',
-    'updatedAt': 'updated_at',
-    'publishedAt': 'published_at',
-    'status': 'status',
-    'published': 'published'
-  };
-
-  const newObj: any = {};
-  for (const key in obj) {
-    if (mapping[key]) {
-      newObj[mapping[key]] = obj[key];
-    } else {
-      newObj[key] = obj[key];
-    }
-  }
-  return newObj;
-};
-
 export const dbService = {
   async login(email: string, pass: string) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
@@ -122,7 +98,6 @@ export const dbService = {
 
   async getMetrics(): Promise<DashboardMetrics> {
     try {
-      // Usamos chamadas isoladas para que falha em uma não mate as outras
       const posts = await this.getBlogs().catch(() => []);
       const events = await this.getEvents().catch(() => []);
       const automation = await this.getAutomationSettings().catch(() => ({ enabled: false }));
@@ -193,11 +168,9 @@ export const dbService = {
       category: post.category || 'Geral',
       image: post.image || 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
       source: post.source || 'manual',
-      status: post.status || 'draft',
-      published: post.status === 'published',
       created_at: now,
       updated_at: now,
-      published_at: (post.status === 'published') ? now : null
+      published_at: post.status === 'published' ? now : null
     };
     
     const { error } = await supabase.from('posts').insert([finalPost]);
@@ -209,21 +182,23 @@ export const dbService = {
     
     const now = new Date().toISOString();
     
-    // Limpeza rigorosa do payload para evitar erros 400 (colunas inexistentes)
-    const payload: any = {};
+    const payload: any = { ...updates };
     
-    // Se estivermos apenas alternando o estado de publicação:
-    if (updates.hasOwnProperty('published')) {
-      payload.published = !!updates.published;
-      payload.status = payload.published ? 'published' : 'draft';
-      payload.published_at = payload.published ? (updates.publishedAt || now) : null;
+    // Tratamento estrito de publicação usando published_at
+    if (updates.hasOwnProperty('published_at')) {
+      payload.published_at = updates.published_at;
+    } else if (updates.hasOwnProperty('published')) {
+      // Fallback caso a UI ainda passe 'published'
+      payload.published_at = updates.published ? now : null;
+      delete payload.published;
     }
 
-    // Outros campos comuns que podem vir no update
-    if (updates.title) payload.title = updates.title;
-    if (updates.content) payload.content = updates.content;
-    if (updates.category) payload.category = updates.category;
-    if (updates.image) payload.image = updates.image;
+    // Removendo campos legados para evitar conflitos de schema
+    delete payload.published;
+    delete payload.status;
+    delete payload.publishedAt;
+    delete payload.updatedAt;
+    delete payload.createdAt;
     
     payload.updated_at = now;
 
@@ -233,7 +208,7 @@ export const dbService = {
       .eq('id', id);
 
     if (error) {
-      console.error("Erro ao publicar post:", {
+      console.error("Erro ao atualizar post via published_at:", {
         message: error.message,
         details: error.details,
         code: error.code

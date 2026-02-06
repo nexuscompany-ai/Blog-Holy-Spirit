@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Calendar as CalendarIcon, MapPin, ArrowLeft, Sparkles, BookOpen } from 'lucide-react';
-import { dbService, HolyEvent, HolySettings } from '../db';
+import { dbService, HolyEvent, HolySettings, supabase } from '../db';
 import BlogCard from './BlogCard';
 
 export interface BlogPost {
@@ -12,10 +12,7 @@ export interface BlogPost {
   category: string;
   image: string;
   slug: string;
-  createdAt: string;
-  status: 'draft' | 'published';
-  published?: boolean;
-  publishedAt?: string | null;
+  created_at: string;
   published_at?: string | null;
 }
 
@@ -31,29 +28,26 @@ const BlogSection: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [allPosts, allEvents, currentSettings] = await Promise.all([
-          dbService.getBlogs().catch(() => []),
+        // Query direta ao Supabase filtrando por published_at IS NOT NULL
+        const { data: publishedPostsData, error: postsError } = await supabase
+          .from('posts')
+          .select('*')
+          .not('published_at', 'is', null)
+          .order('published_at', { ascending: false });
+
+        const [allEvents, currentSettings] = await Promise.all([
           dbService.getEvents().catch(() => []),
           dbService.getSettings()
         ]);
 
         const now = new Date();
-        const publishedPosts = allPosts.filter((p: any) => {
-          // Normaliza campo de status e a nova coluna boolean 'published'
-          const isPublished = p.published === true || p.status === 'published';
-          const pDate = p.published_at || p.publishedAt;
-          
-          // Se tiver data de publicação futura, não mostra (agendamento básico)
-          const datePassed = pDate ? new Date(pDate) <= now : true;
-          
-          return isPublished && datePassed;
-        }).sort((a: any, b: any) => {
-          const dateA = new Date(a.published_at || a.publishedAt || a.created_at || a.createdAt).getTime();
-          const dateB = new Date(b.published_at || b.publishedAt || b.created_at || b.createdAt).getTime();
-          return dateB - dateA;
+        const finalPosts = (publishedPostsData || []).filter((p: any) => {
+          // Filtro adicional de data para agendamentos futuros
+          const pDate = p.published_at;
+          return pDate ? new Date(pDate) <= now : false;
         });
 
-        setPosts(publishedPosts);
+        setPosts(finalPosts);
         setEvents(allEvents.filter((e: any) => e.status === 'active'));
         setSettings(currentSettings);
       } catch (err) {
@@ -171,7 +165,7 @@ const BlogSection: React.FC = () => {
                 category={post.category}
                 title={post.title}
                 desc={post.excerpt}
-                date={new Date(post.published_at || post.publishedAt || post.created_at || post.createdAt).toLocaleDateString('pt-BR')}
+                date={new Date(post.published_at!).toLocaleDateString('pt-BR')}
                 readTime="5 min"
                 author={{ name: "Holy Spirit Editorial", avatar: "/icon.svg" }}
                 onClick={() => setSelectedPost(post)}
