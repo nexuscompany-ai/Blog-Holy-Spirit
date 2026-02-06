@@ -13,6 +13,7 @@ export interface BlogPost {
   image: string;
   slug: string;
   createdAt: string;
+  published: boolean;
 }
 
 const BlogSection: React.FC = () => {
@@ -29,7 +30,8 @@ const BlogSection: React.FC = () => {
         dbService.getEvents(),
         dbService.getSettings()
       ]);
-      setPosts(allPosts);
+      // Filtra apenas posts publicados
+      setPosts(allPosts.filter((p: any) => p.published !== false));
       setEvents(allEvents.filter(e => e.status === 'active'));
       setSettings(currentSettings);
     };
@@ -77,9 +79,7 @@ const BlogSection: React.FC = () => {
             </div>
 
             <div className="prose prose-invert max-w-none text-zinc-400 text-xl leading-loose space-y-10 font-medium">
-              {selectedPost.content.split('\n').map((para, i) => (
-                <p key={i}>{para}</p>
-              ))}
+              <div dangerouslySetInnerHTML={{ __html: selectedPost.content }} />
             </div>
 
             <div className="pt-32 border-t border-white/5">
@@ -142,7 +142,7 @@ const BlogSection: React.FC = () => {
                 desc={post.excerpt}
                 date={new Date(post.createdAt).toLocaleDateString('pt-BR')}
                 readTime="5 min"
-                author={{ name: "Holy Spirit Editorial", avatar: "/app/icon.svg" }}
+                author={{ name: "Holy Spirit Editorial", avatar: "/icon.svg" }}
                 onClick={() => setSelectedPost(post)}
               />
             ))}

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   Eye, Trash2, BrainCircuit, User, RefreshCw, 
   Clock, Globe, AlertCircle, CheckCircle, Database, 
-  ArrowDownCircle, Sparkles, Search
+  Sparkles, Search, Rocket, Power, EyeOff
 } from 'lucide-react';
 import { dbService } from '../../db';
 
@@ -22,20 +22,15 @@ const MyBlogs: React.FC = () => {
     const previousCount = blogs.length;
     
     try {
-      // Simula uma pequena espera para "ritual de sincronização" e latência do n8n
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      
+      await new Promise(resolve => setTimeout(resolve, 1000));
       const freshData = await dbService.getBlogs();
       setBlogs(freshData);
       
       const diff = freshData.length - previousCount;
-      if (diff > 0) {
-        setNewItemsCount(diff);
-      }
+      if (diff > 0) setNewItemsCount(diff);
       
       setLastSync(new Date().toLocaleTimeString('pt-BR'));
       setSyncStatus('success');
-      
       setTimeout(() => setSyncStatus('idle'), 4000);
     } catch (err) {
       console.error("Erro na sincronização:", err);
@@ -53,6 +48,19 @@ const MyBlogs: React.FC = () => {
     if (confirm('Deseja excluir este registro permanentemente?')) {
       await dbService.deleteBlog(id);
       performDeepSync();
+    }
+  };
+
+  const togglePublish = async (blog: any) => {
+    const newStatus = blog.published === false ? true : false;
+    setLoading(true);
+    try {
+      await dbService.updateBlog(blog.id, { published: newStatus });
+      await performDeepSync();
+    } catch (err) {
+      alert("Erro ao alterar status de publicação");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -79,12 +87,6 @@ const MyBlogs: React.FC = () => {
             </div>
           )}
           
-          {syncStatus === 'success' && newItemsCount === 0 && (
-            <div className="text-zinc-500 text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
-              <CheckCircle size={12} className="text-green-500" /> Tudo Atualizado
-            </div>
-          )}
-
           <button 
             onClick={performDeepSync} 
             disabled={loading}
@@ -119,15 +121,15 @@ const MyBlogs: React.FC = () => {
               <thead>
                 <tr className="bg-black/40 border-b border-white/5">
                   <th className="px-8 py-6 text-[10px] font-black uppercase text-zinc-600 tracking-widest">Identidade do Post</th>
-                  <th className="px-8 py-6 text-[10px] font-black uppercase text-zinc-600 tracking-widest">Origem / IA</th>
-                  <th className="px-8 py-6 text-[10px] font-black uppercase text-zinc-600 tracking-widest">Estado</th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase text-zinc-600 tracking-widest">Origem</th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase text-zinc-600 tracking-widest">Estado no Site</th>
                   <th className="px-8 py-6 text-[10px] font-black uppercase text-zinc-600 tracking-widest">Data</th>
                   <th className="px-8 py-6 text-[10px] font-black uppercase text-zinc-600 tracking-widest text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {blogs.map((blog) => {
-                  const isScheduled = new Date(blog.publishedAt || blog.createdAt) > new Date();
+                  const isPublished = blog.published !== false;
                   return (
                     <tr key={blog.id} className="hover:bg-white/5 transition-colors group">
                       <td className="px-8 py-6">
@@ -148,44 +150,53 @@ const MyBlogs: React.FC = () => {
                           {blog.source === 'ai' ? (
                             <>
                               <div className="p-2 bg-[#cfec0f]/10 rounded-lg"><BrainCircuit size={14} /></div>
-                              n8n Autopilot
+                              n8n Pilot
                             </>
                           ) : (
                             <>
                               <div className="p-2 bg-zinc-800/50 rounded-lg"><User size={14} /></div>
-                              Escrita Manual
+                              Manual
                             </>
                           )}
                         </div>
                       </td>
                       <td className="px-8 py-6">
-                        {isScheduled ? (
-                          <span className="flex items-center gap-2 text-[9px] font-black uppercase px-4 py-1.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/10">
-                            <Clock size={10} /> Agendado
+                        {isPublished ? (
+                          <span className="flex items-center gap-2 text-[9px] font-black uppercase px-4 py-1.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/10">
+                            <Globe size={10} /> No Templo (Ar)
                           </span>
                         ) : (
-                          <span className="flex items-center gap-2 text-[9px] font-black uppercase px-4 py-1.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/10">
-                            <Globe size={10} /> No Templo
+                          <span className="flex items-center gap-2 text-[9px] font-black uppercase px-4 py-1.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/10">
+                            <Clock size={10} /> Rascunho / Oculto
                           </span>
                         )}
                       </td>
                       <td className="px-8 py-6">
                         <div className="flex flex-col">
                           <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">
-                            {new Date(blog.publishedAt || blog.createdAt).toLocaleDateString('pt-BR')}
-                          </span>
-                          <span className="text-[8px] text-zinc-600 font-bold uppercase">
-                            {new Date(blog.publishedAt || blog.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(blog.createdAt).toLocaleDateString('pt-BR')}
                           </span>
                         </div>
                       </td>
                       <td className="px-8 py-6 text-right">
                         <div className="flex justify-end gap-2">
-                          <button 
-                            className="p-3 bg-black border border-white/5 hover:border-[#cfec0f]/50 rounded-xl text-zinc-500 hover:text-[#cfec0f] transition-all"
-                          >
-                            <Eye size={16} />
-                          </button>
+                          {!isPublished ? (
+                            <button 
+                              onClick={() => togglePublish(blog)}
+                              title="Publicar agora no Site"
+                              className="px-4 py-2 bg-[#cfec0f] text-black rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-all shadow-lg shadow-[#cfec0f]/10"
+                            >
+                              <Rocket size={14} /> Lançar
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={() => togglePublish(blog)}
+                              title="Remover do site e tornar rascunho"
+                              className="p-3 bg-black border border-white/5 hover:border-orange-500/50 rounded-xl text-zinc-500 hover:text-orange-500 transition-all"
+                            >
+                              <EyeOff size={16} />
+                            </button>
+                          )}
                           <button 
                             onClick={() => deleteBlog(blog.id)} 
                             className="p-3 bg-black border border-white/5 hover:border-red-500/50 rounded-xl text-zinc-600 hover:text-red-500 transition-all"
@@ -197,28 +208,18 @@ const MyBlogs: React.FC = () => {
                     </tr>
                   );
                 })}
-                {blogs.length === 0 && !loading && (
-                  <tr>
-                    <td colSpan={5} className="px-8 py-32 text-center">
-                      <div className="flex flex-col items-center gap-4 opacity-40">
-                        <Search size={48} className="text-zinc-700" />
-                        <p className="text-zinc-600 font-black uppercase text-xs tracking-[0.3em]">O Templo está vazio. Inicie uma automação no n8n.</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
         )}
       </div>
 
-      <div className="p-8 bg-[#cfec0f]/5 border border-[#cfec0f]/10 rounded-[32px] flex items-start gap-4 animate-in slide-in-from-bottom-2">
+      <div className="p-8 bg-[#cfec0f]/5 border border-[#cfec0f]/10 rounded-[32px] flex items-start gap-4">
         <Sparkles size={18} className="text-[#cfec0f] shrink-0 mt-1" />
         <div className="space-y-1">
-          <h4 className="text-[10px] font-black text-[#cfec0f] uppercase tracking-widest">Protocolo de Maestria n8n</h4>
+          <h4 className="text-[10px] font-black text-[#cfec0f] uppercase tracking-widest">Moderação do Templo</h4>
           <p className="text-[10px] text-zinc-500 font-medium leading-relaxed">
-            Seus blogs automáticos são injetados diretamente na tabela <code>posts</code>. Caso a automação tenha finalizado mas o post não apareça, utilize o botão de <strong>Sincronização Sagrada</strong> acima para forçar uma nova varredura no Supabase.
+            Posts gerados via n8n aparecem como <strong>Rascunho</strong> para que você revise o conteúdo antes de "Lançar" para o feed público. Clique no botão de foguete para tornar o post visível para seus alunos.
           </p>
         </div>
       </div>

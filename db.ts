@@ -137,7 +137,6 @@ export const dbService = {
       const saved = localStorage.getItem('holy_blogs');
       return saved ? JSON.parse(saved) : [];
     }
-    // Deep Fetch: Ordenado por criação descendente
     const { data, error } = await supabase
       .from('posts')
       .select('*')
@@ -157,9 +156,18 @@ export const dbService = {
       localStorage.setItem('holy_blogs', JSON.stringify([newPost, ...current]));
       return;
     }
-    // Garante que o source seja registrado
     const dataToSave = { ...post, source: post.source || 'manual' };
     await supabase.from('posts').insert([dataToSave]);
+  },
+
+  async updateBlog(id: string, updates: any) {
+    if (isDemoMode) {
+      const current = await this.getBlogs();
+      const updated = current.map((b: any) => b.id === id ? { ...b, ...updates } : b);
+      localStorage.setItem('holy_blogs', JSON.stringify(updated));
+      return;
+    }
+    await supabase.from('posts').update(updates).eq('id', id);
   },
 
   async deleteBlog(id: string) {
