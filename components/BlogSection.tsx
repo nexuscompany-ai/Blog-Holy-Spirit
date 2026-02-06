@@ -30,27 +30,12 @@ const BlogSection: React.FC = () => {
       setLoading(true);
       try {
         const [allPosts, allEvents, currentSettings] = await Promise.all([
-          dbService.getBlogs(),
+          dbService.getPublishedBlogs(),
           dbService.getEvents(),
           dbService.getSettings()
         ]);
 
-        // FILTRO RÍGIDO DE PRODUÇÃO:
-        // Apenas 'published' e cuja data de publicação já passou.
-        const now = new Date();
-        const publishedPosts = allPosts.filter((p: any) => {
-          // Garante compatibilidade com posts antigos que não tinham 'status' (presumidos publicados)
-          const isActuallyPublished = p.status === 'published' || (!p.status && p.publishedAt);
-          
-          if (!isActuallyPublished) return false;
-          if (!p.publishedAt) return false;
-          
-          return new Date(p.publishedAt) <= now;
-        }).sort((a: any, b: any) => {
-          return new Date(b.publishedAt || b.createdAt).getTime() - new Date(a.publishedAt || a.createdAt).getTime();
-        });
-
-        setPosts(publishedPosts);
+        setPosts(allPosts);
         setEvents(allEvents.filter(e => e.status === 'active'));
         setSettings(currentSettings);
       } catch (err) {
