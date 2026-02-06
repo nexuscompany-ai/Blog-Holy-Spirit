@@ -52,23 +52,9 @@ export class PostsService {
         image: data.image,
         slug,
         source: data.source,
-        published: !!data.published,
-        publishedAt: data.published ? (data.publishedAt ? new Date(data.publishedAt) : new Date()) : null,
+        published: data.published,
+        publishedAt: data.publishedAt ? new Date(data.publishedAt) : new Date(),
       }
-    });
-  }
-
-  static async updateById(id: string, updates: Partial<CreatePostDTO & { archived?: boolean }>) {
-    return await prisma.post.update({
-      where: { id },
-      data: updates as any
-    });
-  }
-
-  static async updateBySlug(slug: string, updates: Partial<CreatePostDTO & { archived?: boolean }>) {
-    return await prisma.post.update({
-      where: { slug },
-      data: updates as any
     });
   }
 

@@ -13,7 +13,6 @@ const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY');
 
 export const supabase = createClient(supabaseUrl, supabaseKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy');
 
-// O modo Demo só é ativado se a chave real não existir
 const isDemoMode = !supabaseKey || supabaseKey.includes('sua_chave') || supabaseKey === 'MISSING_ANON_KEY';
 
 export interface HolySettings {
@@ -62,10 +61,8 @@ export const dbService = {
       localStorage.setItem('holy_demo_session', JSON.stringify(mockSession));
       return mockSession;
     }
-
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
-    
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
     if (profile?.role !== 'admin') {
       await supabase.auth.signOut();
@@ -79,7 +76,6 @@ export const dbService = {
       const saved = localStorage.getItem('holy_demo_session');
       return saved ? JSON.parse(saved) : null;
     }
-    
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return null;
     try {
@@ -92,9 +88,7 @@ export const dbService = {
 
   async signOut() {
     localStorage.removeItem('holy_demo_session');
-    if (!isDemoMode) {
-      await supabase.auth.signOut();
-    }
+    if (!isDemoMode) await supabase.auth.signOut();
     window.location.href = '/';
   },
 
@@ -102,7 +96,6 @@ export const dbService = {
     const blogs = await this.getBlogs();
     const events = await this.getEvents();
     const automation = await this.getAutomationSettings();
-
     return {
       postsCount: blogs.length,
       eventsCount: events.length,
@@ -119,12 +112,10 @@ export const dbService = {
       address: 'Av. das Nações, 1000 - SP',
       website: 'www.holyspiritgym.com.br'
     };
-
     if (isDemoMode) {
       const saved = localStorage.getItem('holy_settings');
       return saved ? JSON.parse(saved) : defaultSettings;
     }
-
     try {
       const { data } = await supabase.from('settings').select('*').maybeSingle();
       return data || defaultSettings;
@@ -146,26 +137,17 @@ export const dbService = {
       const saved = localStorage.getItem('holy_blogs');
       return saved ? JSON.parse(saved) : [];
     }
-    // Forçamos a busca sem cache para garantir que posts recém-chegados do n8n apareçam
+    // Deep Fetch: Ordenado por criação descendente
     const { data, error } = await supabase
       .from('posts')
       .select('*')
       .order('createdAt', { ascending: false });
     
     if (error) {
-      console.error("Erro ao buscar blogs do Supabase:", error);
+      console.error("Erro ao buscar blogs:", error);
       return [];
     }
     return data || [];
-  },
-
-  async updateBlog(id: string, updates: Record<string, any>) {
-    if (isDemoMode) {
-      const current = await this.getBlogs();
-      localStorage.setItem('holy_blogs', JSON.stringify(current.map((b: any) => b.id === id ? { ...b, ...updates } : b)));
-      return;
-    }
-    await supabase.from('posts').update(updates).eq('id', id);
   },
 
   async saveBlog(post: any) {
@@ -175,7 +157,9 @@ export const dbService = {
       localStorage.setItem('holy_blogs', JSON.stringify([newPost, ...current]));
       return;
     }
-    await supabase.from('posts').insert([post]);
+    // Garante que o source seja registrado
+    const dataToSave = { ...post, source: post.source || 'manual' };
+    await supabase.from('posts').insert([dataToSave]);
   },
 
   async deleteBlog(id: string) {
