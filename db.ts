@@ -135,14 +135,12 @@ export const dbService = {
 
   async getBlogs() {
     try {
-      // Tentamos buscar ordenando por created_at (padrão Supabase) ou createdAt
       const { data, error } = await supabase
         .from('posts')
         .select('*')
         .order('created_at', { ascending: false });
       
       if (error) {
-        // Fallback se a coluna for camelCase
         const { data: retryData, error: retryError } = await supabase
           .from('posts')
           .select('*')
@@ -161,7 +159,6 @@ export const dbService = {
     const now = new Date().toISOString();
     const slug = post.slug || createSlug(post.title || 'post');
     
-    // Mapeamos para ambos os formatos para garantir inserção
     const finalPost = {
       title: post.title,
       slug: slug.toLowerCase(),
@@ -173,11 +170,10 @@ export const dbService = {
       status: post.status || 'draft',
       created_at: now,
       updated_at: now,
-      published_at: (post.status === 'published' || post.published === true) ? (post.publishedAt || now) : null,
-      // Fallbacks camelCase
+      published_at: (post.status === 'published') ? (post.publishedAt || now) : null,
       createdAt: now,
       updatedAt: now,
-      publishedAt: (post.status === 'published' || post.published === true) ? (post.publishedAt || now) : null
+      publishedAt: (post.status === 'published') ? (post.publishedAt || now) : null
     };
     
     const { error } = await supabase.from('posts').insert([finalPost]);
@@ -186,11 +182,22 @@ export const dbService = {
 
   async updateBlog(id: string, updates: any) {
     const now = new Date().toISOString();
-    const finalUpdates = { ...updates, updated_at: now, updatedAt: now };
+    
+    // Mapeamento inteligente para garantir que ambos os estilos de coluna sejam atualizados
+    const finalUpdates: any = { 
+      ...updates, 
+      updated_at: now, 
+      updatedAt: now 
+    };
 
-    if (updates.status === 'published' && !updates.publishedAt) {
-      finalUpdates.publishedAt = now;
-      finalUpdates.published_at = now;
+    // Sincroniza campos de publicação se presentes
+    if (updates.status === 'published') {
+      const pubDate = updates.publishedAt || now;
+      finalUpdates.publishedAt = pubDate;
+      finalUpdates.published_at = pubDate;
+    } else if (updates.status === 'draft') {
+      finalUpdates.publishedAt = null;
+      finalUpdates.published_at = null;
     }
 
     const { error } = await supabase.from('posts').update(finalUpdates).eq('id', id);

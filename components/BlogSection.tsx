@@ -15,6 +15,7 @@ export interface BlogPost {
   createdAt: string;
   status: 'draft' | 'published';
   publishedAt?: string | null;
+  published_at?: string | null;
 }
 
 const BlogSection: React.FC = () => {
@@ -37,16 +38,17 @@ const BlogSection: React.FC = () => {
 
         const now = new Date();
         const publishedPosts = allPosts.filter((p: any) => {
-          // Lógica de publicação:
-          // 1. Status deve ser explicitamente 'published'
-          // 2. OU se não houver campo status (post antigo), ele deve ter data de publicação
-          const isPublished = p.status === 'published' || (!p.status && p.publishedAt);
-          const datePassed = p.publishedAt ? new Date(p.publishedAt) <= now : true;
+          // Normaliza campo de status e data
+          const status = p.status;
+          const pDate = p.publishedAt || p.published_at;
+          
+          const isPublished = status === 'published' || (!status && pDate);
+          const datePassed = pDate ? new Date(pDate) <= now : true;
           
           return isPublished && datePassed;
         }).sort((a: any, b: any) => {
-          const dateA = new Date(a.publishedAt || a.createdAt).getTime();
-          const dateB = new Date(b.publishedAt || b.createdAt).getTime();
+          const dateA = new Date(a.publishedAt || a.published_at || a.createdAt || a.created_at).getTime();
+          const dateB = new Date(b.publishedAt || b.published_at || b.createdAt || b.created_at).getTime();
           return dateB - dateA;
         });
 
@@ -168,7 +170,7 @@ const BlogSection: React.FC = () => {
                 category={post.category}
                 title={post.title}
                 desc={post.excerpt}
-                date={new Date(post.publishedAt || post.createdAt).toLocaleDateString('pt-BR')}
+                date={new Date(post.publishedAt || post.published_at || post.createdAt || post.created_at).toLocaleDateString('pt-BR')}
                 readTime="5 min"
                 author={{ name: "Holy Spirit Editorial", avatar: "/icon.svg" }}
                 onClick={() => setSelectedPost(post)}

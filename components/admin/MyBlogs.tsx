@@ -18,8 +18,6 @@ const MyBlogs: React.FC = () => {
     setSyncStatus('syncing');
     
     try {
-      // Garante uma pequena pausa para feedback visual
-      await new Promise(resolve => setTimeout(resolve, 800));
       const freshData = await dbService.getBlogs();
       setBlogs(freshData);
       
@@ -46,18 +44,20 @@ const MyBlogs: React.FC = () => {
   };
 
   const togglePublish = async (blog: any) => {
-    const isDraft = blog.status !== 'published';
-    const newStatus = isDraft ? 'published' : 'draft';
+    const isCurrentlyDraft = blog.status === 'draft' || !blog.status;
+    const newStatus = isCurrentlyDraft ? 'published' : 'draft';
     
     setLoading(true);
     try {
+      // Passamos os campos explicitamente. O dbService cuidará do mapeamento snake/camel.
       await dbService.updateBlog(blog.id, { 
         status: newStatus,
         publishedAt: newStatus === 'published' ? new Date().toISOString() : null 
       });
       await performDeepSync();
     } catch (err) {
-      alert("Erro ao alterar status de publicação");
+      console.error("Toggle error:", err);
+      alert("Erro ao alterar status de publicação. Verifique a conexão com o Supabase.");
     } finally {
       setLoading(false);
     }
@@ -65,7 +65,6 @@ const MyBlogs: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
-      {/* HEADER DE SINCRONIZAÇÃO */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-zinc-900/30 p-8 rounded-[32px] border border-white/5 gap-6 relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-32 h-32 bg-neon/5 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-neon/10 transition-all duration-1000"></div>
         
@@ -95,7 +94,6 @@ const MyBlogs: React.FC = () => {
         </div>
       </div>
       
-      {/* TABELA DE BLOGS */}
       <div className="bg-zinc-900/10 rounded-[40px] border border-white/5 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -110,6 +108,8 @@ const MyBlogs: React.FC = () => {
             <tbody className="divide-y divide-white/5">
               {blogs.map((blog) => {
                 const isPublished = blog.status === 'published';
+                const pDate = blog.publishedAt || blog.published_at;
+                
                 return (
                   <tr key={blog.id} className="hover:bg-white/5 transition-colors group">
                     <td className="px-8 py-6">
@@ -135,9 +135,11 @@ const MyBlogs: React.FC = () => {
                           <span className="flex items-center gap-2 text-[9px] font-black uppercase px-4 py-1.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/10 w-fit">
                             <Globe size={10} /> Publicado
                           </span>
-                          <span className="text-[8px] text-zinc-600 font-bold uppercase ml-2 italic">
-                            {new Date(blog.publishedAt).toLocaleDateString('pt-BR')}
-                          </span>
+                          {pDate && (
+                            <span className="text-[8px] text-zinc-600 font-bold uppercase ml-2 italic">
+                              {new Date(pDate).toLocaleDateString('pt-BR')}
+                            </span>
+                          )}
                         </div>
                       ) : (
                         <span className="flex items-center gap-2 text-[9px] font-black uppercase px-4 py-1.5 rounded-full bg-zinc-800 text-zinc-500 border border-white/5 w-fit">
