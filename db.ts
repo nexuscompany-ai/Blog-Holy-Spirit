@@ -67,15 +67,16 @@ const createSlug = (text: string) => {
 };
 
 /**
- * Função utilitária para converter chaves camelCase para snake_case
- * Isso evita o erro 400 no Supabase quando tentamos atualizar colunas que não existem (ex: updatedAt vs updated_at)
+ * Mapeamento estrito para evitar o envio de colunas que podem não existir no banco.
+ * Prioriza snake_case mas mantém suporte a colunas citadas se o usuário as criou assim.
  */
 const mapToSnakeCase = (obj: any) => {
   const mapping: Record<string, string> = {
     'createdAt': 'created_at',
     'updatedAt': 'updated_at',
     'publishedAt': 'published_at',
-    'whatsappEnabled': 'whatsappEnabled', // Caso especial mantido no schema SQL
+    'status': 'status',
+    'published': 'published'
   };
 
   const newObj: any = {};
@@ -121,13 +122,15 @@ export const dbService = {
 
   async getMetrics(): Promise<DashboardMetrics> {
     try {
-      const blogs = await this.getBlogs();
-      const events = await this.getEvents();
-      const automation = await this.getAutomationSettings();
+      // Usamos chamadas isoladas para que falha em uma não mate as outras
+      const posts = await this.getBlogs().catch(() => []);
+      const events = await this.getEvents().catch(() => []);
+      const automation = await this.getAutomationSettings().catch(() => ({ enabled: false }));
+      
       return {
-        postsCount: blogs.length,
+        postsCount: posts.length,
         eventsCount: events.length,
-        activeEventsCount: events.filter(e => e.status === 'active').length,
+        activeEventsCount: events.filter((e: any) => e.status === 'active').length,
         automationActive: automation.enabled
       };
     } catch {
@@ -164,7 +167,6 @@ export const dbService = {
         .order('created_at', { ascending: false });
       
       if (error) {
-        // Fallback para createdAt se created_at falhar (erro 400)
         const { data: retryData, error: retryError } = await supabase
           .from('posts')
           .select('*')
@@ -183,7 +185,6 @@ export const dbService = {
     const now = new Date().toISOString();
     const slug = post.slug || createSlug(post.title || 'post');
     
-    // Preparar objeto para inserção garantindo snake_case (nativo Postgres)
     const finalPost: any = {
       title: post.title,
       slug: slug.toLowerCase(),
@@ -193,43 +194,50 @@ export const dbService = {
       image: post.image || 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
       source: post.source || 'manual',
       status: post.status || 'draft',
+      published: post.status === 'published',
       created_at: now,
       updated_at: now,
-      published_at: (post.status === 'published') ? (post.publishedAt || now) : null
+      published_at: (post.status === 'published') ? now : null
     };
     
     const { error } = await supabase.from('posts').insert([finalPost]);
-    if (error) {
-      console.error("Erro ao salvar blog:", error);
-      throw error;
-    }
+    if (error) throw error;
   },
 
   async updateBlog(id: string, updates: any) {
+    if (!id) throw new Error("ID do post não fornecido para atualização.");
+    
     const now = new Date().toISOString();
     
-    // 1. Limpar e mapear os updates
-    const cleanedUpdates = { ...updates };
+    // Limpeza rigorosa do payload para evitar erros 400 (colunas inexistentes)
+    const payload: any = {};
     
-    // Se estiver publicando, define as datas
-    if (updates.status === 'published') {
-      cleanedUpdates.publishedAt = updates.publishedAt || now;
-    } else if (updates.status === 'draft') {
-      cleanedUpdates.publishedAt = null;
+    // Se estivermos apenas alternando o estado de publicação:
+    if (updates.hasOwnProperty('published')) {
+      payload.published = !!updates.published;
+      payload.status = payload.published ? 'published' : 'draft';
+      payload.published_at = payload.published ? (updates.publishedAt || now) : null;
     }
 
-    cleanedUpdates.updatedAt = now;
-
-    // 2. Converte tudo para snake_case para evitar o erro 400 de "coluna inexistente"
-    const snakeCaseUpdates = mapToSnakeCase(cleanedUpdates);
+    // Outros campos comuns que podem vir no update
+    if (updates.title) payload.title = updates.title;
+    if (updates.content) payload.content = updates.content;
+    if (updates.category) payload.category = updates.category;
+    if (updates.image) payload.image = updates.image;
+    
+    payload.updated_at = now;
 
     const { error } = await supabase
       .from('posts')
-      .update(snakeCaseUpdates)
+      .update(payload)
       .eq('id', id);
 
     if (error) {
-      console.error("Erro Supabase Update:", error);
+      console.error("Erro ao publicar post:", {
+        message: error.message,
+        details: error.details,
+        code: error.code
+      });
       throw error;
     }
   },

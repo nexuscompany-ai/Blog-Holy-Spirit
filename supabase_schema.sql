@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS posts (
     image TEXT,
     source TEXT DEFAULT 'manual',
     status TEXT DEFAULT 'draft',
+    published BOOLEAN DEFAULT false, -- Nova coluna para controle simplificado
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     published_at TIMESTAMPTZ,
@@ -62,6 +63,3 @@ CREATE TABLE IF NOT EXISTS profiles (
     role TEXT DEFAULT 'user',
     full_name TEXT
 );
-
--- Ativar RLS se desejar, ou manter desativado para facilitar o teste inicial
--- ALTER TABLE posts ENABLE ROW LEVEL SECURITY;

@@ -44,20 +44,21 @@ const MyBlogs: React.FC = () => {
   };
 
   const togglePublish = async (blog: any) => {
-    const isCurrentlyDraft = blog.status === 'draft' || !blog.status;
-    const newStatus = isCurrentlyDraft ? 'published' : 'draft';
+    if (!blog.id) return;
+    
+    const isCurrentlyPublished = blog.published === true || blog.status === 'published';
+    const newPublishedState = !isCurrentlyPublished;
     
     setLoading(true);
     try {
-      // Passamos os campos explicitamente. O dbService cuidará do mapeamento snake/camel.
+      // Isola a ação de publicação apenas na tabela posts
       await dbService.updateBlog(blog.id, { 
-        status: newStatus,
-        publishedAt: newStatus === 'published' ? new Date().toISOString() : null 
+        published: newPublishedState 
       });
       await performDeepSync();
-    } catch (err) {
-      console.error("Toggle error:", err);
-      alert("Erro ao alterar status de publicação. Verifique a conexão com o Supabase.");
+    } catch (err: any) {
+      console.error("Toggle Publish Error:", err);
+      alert(`Erro ao alterar status: ${err.message || 'Verifique o console para detalhes.'}`);
     } finally {
       setLoading(false);
     }
@@ -107,8 +108,8 @@ const MyBlogs: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-white/5">
               {blogs.map((blog) => {
-                const isPublished = blog.status === 'published';
-                const pDate = blog.publishedAt || blog.published_at;
+                const isPublished = blog.published === true || blog.status === 'published';
+                const pDate = blog.published_at || blog.publishedAt;
                 
                 return (
                   <tr key={blog.id} className="hover:bg-white/5 transition-colors group">
@@ -157,6 +158,7 @@ const MyBlogs: React.FC = () => {
                       <div className="flex justify-end gap-2">
                         <button 
                           onClick={() => togglePublish(blog)}
+                          disabled={loading}
                           className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg ${
                             !isPublished 
                               ? 'bg-[#cfec0f] text-black hover:scale-105 shadow-[#cfec0f]/10' 

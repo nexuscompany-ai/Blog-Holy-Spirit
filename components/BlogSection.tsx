@@ -14,6 +14,7 @@ export interface BlogPost {
   slug: string;
   createdAt: string;
   status: 'draft' | 'published';
+  published?: boolean;
   publishedAt?: string | null;
   published_at?: string | null;
 }
@@ -31,29 +32,29 @@ const BlogSection: React.FC = () => {
       setLoading(true);
       try {
         const [allPosts, allEvents, currentSettings] = await Promise.all([
-          dbService.getBlogs(),
-          dbService.getEvents(),
+          dbService.getBlogs().catch(() => []),
+          dbService.getEvents().catch(() => []),
           dbService.getSettings()
         ]);
 
         const now = new Date();
         const publishedPosts = allPosts.filter((p: any) => {
-          // Normaliza campo de status e data
-          const status = p.status;
-          const pDate = p.publishedAt || p.published_at;
+          // Normaliza campo de status e a nova coluna boolean 'published'
+          const isPublished = p.published === true || p.status === 'published';
+          const pDate = p.published_at || p.publishedAt;
           
-          const isPublished = status === 'published' || (!status && pDate);
+          // Se tiver data de publicação futura, não mostra (agendamento básico)
           const datePassed = pDate ? new Date(pDate) <= now : true;
           
           return isPublished && datePassed;
         }).sort((a: any, b: any) => {
-          const dateA = new Date(a.publishedAt || a.published_at || a.createdAt || a.created_at).getTime();
-          const dateB = new Date(b.publishedAt || b.published_at || b.createdAt || b.created_at).getTime();
+          const dateA = new Date(a.published_at || a.publishedAt || a.created_at || a.createdAt).getTime();
+          const dateB = new Date(b.published_at || b.publishedAt || b.created_at || b.createdAt).getTime();
           return dateB - dateA;
         });
 
         setPosts(publishedPosts);
-        setEvents(allEvents.filter(e => e.status === 'active'));
+        setEvents(allEvents.filter((e: any) => e.status === 'active'));
         setSettings(currentSettings);
       } catch (err) {
         console.error("Erro no feed público:", err);
@@ -170,7 +171,7 @@ const BlogSection: React.FC = () => {
                 category={post.category}
                 title={post.title}
                 desc={post.excerpt}
-                date={new Date(post.publishedAt || post.published_at || post.createdAt || post.created_at).toLocaleDateString('pt-BR')}
+                date={new Date(post.published_at || post.publishedAt || post.created_at || post.createdAt).toLocaleDateString('pt-BR')}
                 readTime="5 min"
                 author={{ name: "Holy Spirit Editorial", avatar: "/icon.svg" }}
                 onClick={() => setSelectedPost(post)}
