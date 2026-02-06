@@ -1,32 +1,67 @@
 
--- Execute este comando no SQL Editor do seu projeto Supabase para atualizar a tabela
+-- Execute este comando no SQL Editor do seu projeto Supabase para criar as tabelas corretamente
 
--- Adicionando coluna status se não existir
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='posts' AND column_name='status') THEN
-        ALTER TABLE posts ADD COLUMN status TEXT DEFAULT 'draft';
-    END IF;
-END $$;
+-- Tabela de Posts
+CREATE TABLE IF NOT EXISTS posts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    excerpt TEXT,
+    content TEXT,
+    category TEXT DEFAULT 'Geral',
+    image TEXT,
+    source TEXT DEFAULT 'manual',
+    status TEXT DEFAULT 'draft',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    published_at TIMESTAMPTZ,
+    -- Fallbacks para camelCase se necessário
+    "createdAt" TIMESTAMPTZ DEFAULT now(),
+    "updatedAt" TIMESTAMPTZ DEFAULT now(),
+    "publishedAt" TIMESTAMPTZ
+);
 
--- Garantindo que publishedAt aceite nulo para rascunhos
-ALTER TABLE posts ALTER COLUMN "publishedAt" DROP NOT NULL;
-ALTER TABLE posts ALTER COLUMN "publishedAt" SET DEFAULT NULL;
+-- Tabela de Eventos
+CREATE TABLE IF NOT EXISTS events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title TEXT NOT NULL,
+    date TEXT NOT NULL,
+    time TEXT,
+    location TEXT,
+    description TEXT,
+    category TEXT DEFAULT 'Workshop',
+    status TEXT DEFAULT 'active',
+    image TEXT,
+    "whatsappEnabled" BOOLEAN DEFAULT false,
+    "whatsappNumber" TEXT,
+    "whatsappMessage" TEXT
+);
 
--- Adicionando coluna updatedAt para controle de versão
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='posts' AND column_name='updatedAt') THEN
-        ALTER TABLE posts ADD COLUMN "updatedAt" TIMESTAMPTZ DEFAULT now();
-    END IF;
-END $$;
+-- Tabela de Configurações
+CREATE TABLE IF NOT EXISTS settings (
+    id TEXT PRIMARY KEY DEFAULT 'config',
+    "gymName" TEXT,
+    phone TEXT,
+    instagram TEXT,
+    address TEXT,
+    website TEXT
+);
 
--- Adicionando unicidade ao slug se não houver
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'posts_slug_key') THEN
-        ALTER TABLE posts ADD CONSTRAINT posts_slug_key UNIQUE (slug);
-    END IF;
-EXCEPTION
-    WHEN others THEN NULL;
-END $$;
+-- Tabela de Automação
+CREATE TABLE IF NOT EXISTS automation_settings (
+    id TEXT PRIMARY KEY DEFAULT 'config',
+    enabled BOOLEAN DEFAULT false,
+    frequency_days INTEGER DEFAULT 3,
+    topics TEXT,
+    target_category TEXT DEFAULT 'Musculação'
+);
+
+-- Tabela de Perfis/Roles
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
+    role TEXT DEFAULT 'user',
+    full_name TEXT
+);
+
+-- Ativar RLS se desejar, ou manter desativado para facilitar o teste inicial
+-- ALTER TABLE posts ENABLE ROW LEVEL SECURITY;

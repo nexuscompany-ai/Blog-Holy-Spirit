@@ -13,8 +13,6 @@ const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY') || 'eyJhbGciOiJIUzI1NiIsInR
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-const isDemoMode = !supabaseKey || supabaseKey.includes('sua_chave') || supabaseKey === 'MISSING_ANON_KEY';
-
 export interface HolySettings {
   id?: string;
   gymName: string;
@@ -54,19 +52,16 @@ export interface DashboardMetrics {
   automationActive: boolean;
 }
 
-/**
- * Utilitário de Gerenciamento de Slugs (SEO + Unicidade)
- */
 const createSlug = (text: string) => {
   if (!text) return `post-${Math.random().toString(36).substring(2, 7)}`;
   const cleanText = text
     .toLowerCase()
     .trim()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-    .replace(/[^\w\s-]/g, '')        // Remove especiais
-    .replace(/[\s_-]+/g, '-')       // Espaços para -
-    .replace(/^-+|-+$/g, '');       // Trim -
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
     
   return `${cleanText}-${Math.random().toString(36).substring(2, 7)}`;
 };
@@ -90,7 +85,6 @@ export const dbService = {
   },
 
   async getSession() {
-    // Retorna sessão simulada para permitir acesso livre ao admin durante o desenvolvimento
     return { 
       user: { id: 'dev-mode', email: 'admin@holyspirit.com' }, 
       role: 'admin' 
@@ -103,15 +97,19 @@ export const dbService = {
   },
 
   async getMetrics(): Promise<DashboardMetrics> {
-    const blogs = await this.getBlogs();
-    const events = await this.getEvents();
-    const automation = await this.getAutomationSettings();
-    return {
-      postsCount: blogs.length,
-      eventsCount: events.length,
-      activeEventsCount: events.filter(e => e.status === 'active').length,
-      automationActive: automation.enabled
-    };
+    try {
+      const blogs = await this.getBlogs();
+      const events = await this.getEvents();
+      const automation = await this.getAutomationSettings();
+      return {
+        postsCount: blogs.length,
+        eventsCount: events.length,
+        activeEventsCount: events.filter(e => e.status === 'active').length,
+        automationActive: automation.enabled
+      };
+    } catch {
+      return { postsCount: 0, eventsCount: 0, activeEventsCount: 0, automationActive: false };
+    }
   },
 
   async getSettings(): Promise<HolySettings> {
@@ -123,7 +121,8 @@ export const dbService = {
       website: 'www.holyspiritgym.com.br'
     };
     try {
-      const { data } = await supabase.from('settings').select('*').maybeSingle();
+      const { data, error } = await supabase.from('settings').select('*').maybeSingle();
+      if (error) return defaultSettings;
       return data || defaultSettings;
     } catch {
       return defaultSettings;
@@ -135,22 +134,34 @@ export const dbService = {
   },
 
   async getBlogs() {
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .order('createdAt', { ascending: false });
-    
-    if (error) {
-      console.error("Erro ao buscar blogs:", error);
+    try {
+      // Tentamos buscar ordenando por created_at (padrão Supabase) ou createdAt
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        // Fallback se a coluna for camelCase
+        const { data: retryData, error: retryError } = await supabase
+          .from('posts')
+          .select('*')
+          .order('createdAt', { ascending: false });
+          
+        if (retryError) return [];
+        return retryData || [];
+      }
+      return data || [];
+    } catch {
       return [];
     }
-    return data || [];
   },
 
   async saveBlog(post: any) {
     const now = new Date().toISOString();
     const slug = post.slug || createSlug(post.title || 'post');
     
+    // Mapeamos para ambos os formatos para garantir inserção
     const finalPost = {
       title: post.title,
       slug: slug.toLowerCase(),
@@ -160,28 +171,26 @@ export const dbService = {
       image: post.image || 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
       source: post.source || 'manual',
       status: post.status || 'draft',
+      created_at: now,
+      updated_at: now,
+      published_at: (post.status === 'published' || post.published === true) ? (post.publishedAt || now) : null,
+      // Fallbacks camelCase
       createdAt: now,
       updatedAt: now,
       publishedAt: (post.status === 'published' || post.published === true) ? (post.publishedAt || now) : null
     };
     
     const { error } = await supabase.from('posts').insert([finalPost]);
-    if (error) {
-      console.error("Erro ao inserir post:", error);
-      throw error;
-    }
+    if (error) throw error;
   },
 
   async updateBlog(id: string, updates: any) {
     const now = new Date().toISOString();
-    
-    const finalUpdates = {
-      ...updates,
-      updatedAt: now
-    };
+    const finalUpdates = { ...updates, updated_at: now, updatedAt: now };
 
     if (updates.status === 'published' && !updates.publishedAt) {
       finalUpdates.publishedAt = now;
+      finalUpdates.published_at = now;
     }
 
     const { error } = await supabase.from('posts').update(finalUpdates).eq('id', id);
@@ -189,13 +198,17 @@ export const dbService = {
   },
 
   async deleteBlog(id: string) {
-    const { error } = await supabase.from('posts').delete().eq('id', id);
-    if (error) throw error;
+    await supabase.from('posts').delete().eq('id', id);
   },
 
   async getEvents() {
-    const { data } = await supabase.from('events').select('*').order('date', { ascending: true });
-    return data || [];
+    try {
+      const { data, error } = await supabase.from('events').select('*').order('date', { ascending: true });
+      if (error) return [];
+      return data || [];
+    } catch {
+      return [];
+    }
   },
 
   async saveEvent(event: any) {
@@ -212,8 +225,13 @@ export const dbService = {
 
   async getAutomationSettings(): Promise<AutomationSettings> {
     const defaults: AutomationSettings = { enabled: false, frequency_days: 3, topics: '', target_category: 'Musculação' };
-    const { data } = await supabase.from('automation_settings').select('*').maybeSingle();
-    return data || defaults;
+    try {
+      const { data, error } = await supabase.from('automation_settings').select('*').maybeSingle();
+      if (error) return defaults;
+      return data || defaults;
+    } catch {
+      return defaults;
+    }
   },
 
   async saveAutomationSettings(settings: AutomationSettings) {
