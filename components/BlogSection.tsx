@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Calendar as CalendarIcon, MapPin, ArrowLeft, Sparkles, BookOpen, MessageSquare } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, ArrowLeft, Sparkles, BookOpen } from 'lucide-react';
 import { dbService, HolyEvent, HolySettings } from '../db';
 import BlogCard from './BlogCard';
 
@@ -13,7 +13,8 @@ export interface BlogPost {
   image: string;
   slug: string;
   createdAt: string;
-  published: boolean;
+  status: 'draft' | 'published';
+  publishedAt?: string | null;
 }
 
 const BlogSection: React.FC = () => {
@@ -22,18 +23,34 @@ const BlogSection: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'articles' | 'events'>('articles');
   const [settings, setSettings] = useState<HolySettings | null>(null);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     const fetchData = async () => {
-      const [allPosts, allEvents, currentSettings] = await Promise.all([
-        dbService.getBlogs(),
-        dbService.getEvents(),
-        dbService.getSettings()
-      ]);
-      // Filtra apenas posts publicados
-      setPosts(allPosts.filter((p: any) => p.published !== false));
-      setEvents(allEvents.filter(e => e.status === 'active'));
-      setSettings(currentSettings);
+      setLoading(true);
+      try {
+        const [allPosts, allEvents, currentSettings] = await Promise.all([
+          dbService.getBlogs(),
+          dbService.getEvents(),
+          dbService.getSettings()
+        ]);
+
+        // REGRAS DE EXIBIÇÃO PÚBLICA:
+        // 1. Somente status 'published'
+        // 2. Data de publicação menor ou igual a hoje
+        const now = new Date();
+        const publishedPosts = allPosts.filter((p: any) => {
+          if (p.status !== 'published') return false;
+          if (!p.publishedAt) return false;
+          return new Date(p.publishedAt) <= now;
+        }).sort((a: any, b: any) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+
+        setPosts(publishedPosts);
+        setEvents(allEvents.filter(e => e.status === 'active'));
+        setSettings(currentSettings);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
 
@@ -131,7 +148,11 @@ const BlogSection: React.FC = () => {
           </div>
         </div>
 
-        {activeTab === 'articles' ? (
+        {loading ? (
+          <div className="py-32 flex justify-center">
+            <div className="w-12 h-12 border-4 border-neon border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : activeTab === 'articles' ? (
           <div className="grid md:grid-cols-2 gap-12 animate-in fade-in duration-500">
             {posts.map((post) => (
               <BlogCard 
@@ -140,7 +161,7 @@ const BlogSection: React.FC = () => {
                 category={post.category}
                 title={post.title}
                 desc={post.excerpt}
-                date={new Date(post.createdAt).toLocaleDateString('pt-BR')}
+                date={new Date(post.publishedAt || post.createdAt).toLocaleDateString('pt-BR')}
                 readTime="5 min"
                 author={{ name: "Holy Spirit Editorial", avatar: "/icon.svg" }}
                 onClick={() => setSelectedPost(post)}

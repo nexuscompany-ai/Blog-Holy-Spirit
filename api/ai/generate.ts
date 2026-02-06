@@ -5,7 +5,6 @@ export const config = {
 
 /**
  * PROXY HOLY SPIRIT -> N8N CLOUD (ORCHESTRATOR)
- * Gerencia a comunicação entre o site e o fluxo de automação.
  */
 export default async function handler(req: Request) {
   const headers = {
@@ -23,16 +22,17 @@ export default async function handler(req: Request) {
     const body = await req.json().catch(() => ({}));
     const { prompt, category, mode, postData } = body;
 
-    // URL DE PRODUÇÃO DO WEBHOOK
-    // Importante: No n8n, o Workflow deve estar com o botão "Active" ligado.
     const N8N_WEBHOOK_URL = "https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator";
 
+    // SHAPE DE DADOS EXPLICITO PARA O N8N
     const payload = {
       mode: mode || 'preview',
       tema: prompt,
       categoria: category || 'Musculação',
       origem: 'holy_spirit_admin',
       timestamp: new Date().toISOString(),
+      status: 'draft', // FORÇA IA A SER SEMPRE DRAFT INICIAL
+      source: 'ai',
       ...(mode === 'publish' ? { ...postData } : {})
     };
 
@@ -47,19 +47,17 @@ export default async function handler(req: Request) {
 
     const responseText = await n8nResponse.text();
     
-    // Se o webhook não estiver "Active", o n8n retorna 404
     if (n8nResponse.status === 404) {
       return new Response(JSON.stringify({ 
         success: false,
         error: 'Workflow n8n Inativo', 
-        details: 'O workflow no n8n Cloud não está ATIVO ou a URL está incorreta (/webhook/blog-generator).' 
+        details: 'O workflow no n8n Cloud não está ATIVO.' 
       }), { status: 404, headers });
     }
 
     let responseData;
     try {
       responseData = JSON.parse(responseText);
-      // Se n8n retornar um array (comum no nó Supabase), pegamos o primeiro item
       if (Array.isArray(responseData)) responseData = responseData[0];
     } catch {
       responseData = { success: false, error: 'Erro no JSON do n8n', raw: responseText };

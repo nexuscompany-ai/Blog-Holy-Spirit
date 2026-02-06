@@ -54,6 +54,18 @@ export interface DashboardMetrics {
   automationActive: boolean;
 }
 
+// Helper para gerar slug determinístico no frontend caso necessário
+const generateSlug = (title: string) => {
+  return title
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '') + '-' + Math.random().toString(36).substring(2, 7);
+};
+
 export const dbService = {
   async login(email: string, pass: string) {
     if (isDemoMode) {
@@ -150,24 +162,48 @@ export const dbService = {
   },
 
   async saveBlog(post: any) {
+    const now = new Date().toISOString();
+    const slug = post.slug || generateSlug(post.title);
+    
+    const finalPost = {
+      ...post,
+      slug: slug.toLowerCase(),
+      status: post.status || 'draft',
+      source: post.source || 'manual',
+      createdAt: now,
+      updatedAt: now,
+      publishedAt: post.status === 'published' ? (post.publishedAt || now) : null
+    };
+
     if (isDemoMode) {
       const current = await this.getBlogs();
-      const newPost = { ...post, id: Math.random().toString(36).substr(2, 9), createdAt: new Date().toISOString() };
+      const newPost = { ...finalPost, id: Math.random().toString(36).substr(2, 9) };
       localStorage.setItem('holy_blogs', JSON.stringify([newPost, ...current]));
       return;
     }
-    const dataToSave = { ...post, source: post.source || 'manual' };
-    await supabase.from('posts').insert([dataToSave]);
+    
+    const { error } = await supabase.from('posts').insert([finalPost]);
+    if (error) throw error;
   },
 
   async updateBlog(id: string, updates: any) {
+    const now = new Date().toISOString();
+    const finalUpdates = {
+      ...updates,
+      updatedAt: now,
+      // Se mudar para publicado, garante a data de publicação
+      ...(updates.status === 'published' && !updates.publishedAt ? { publishedAt: now } : {})
+    };
+
     if (isDemoMode) {
       const current = await this.getBlogs();
-      const updated = current.map((b: any) => b.id === id ? { ...b, ...updates } : b);
+      const updated = current.map((b: any) => b.id === id ? { ...b, ...finalUpdates } : b);
       localStorage.setItem('holy_blogs', JSON.stringify(updated));
       return;
     }
-    await supabase.from('posts').update(updates).eq('id', id);
+    
+    const { error } = await supabase.from('posts').update(finalUpdates).eq('id', id);
+    if (error) throw error;
   },
 
   async deleteBlog(id: string) {

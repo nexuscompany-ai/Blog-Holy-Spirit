@@ -3,10 +3,27 @@ import { prisma } from '../lib/prisma';
 import { CreatePostDTO } from '../types/post';
 
 export class PostsService {
+  /**
+   * Helper para gerar slug limpo e único
+   */
+  static generateSlug(title: string): string {
+    const clean = title
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^\w\s-]/g, '')        // Remove caracteres especiais
+      .replace(/[\s_-]+/g, '-')       // Espaços para -
+      .replace(/^-+|-+$/g, '');       // Trim de -
+
+    // Adiciona sufixo aleatório curto para garantir unicidade absoluta
+    const suffix = Math.random().toString(36).substring(2, 7);
+    return `${clean}-${suffix}`;
+  }
+
   static async getAll() {
     return await prisma.post.findMany({
       orderBy: { createdAt: 'desc' },
-      // Em produção, listamos todos para o admin, mas o frontend filtra por publishedAt
     });
   }
 
@@ -14,53 +31,58 @@ export class PostsService {
     const now = new Date();
     return await prisma.post.findMany({
       where: {
-        published: true,
-        OR: [
-          { publishedAt: null },
-          { publishedAt: { lte: now } }
-        ]
+        status: 'published',
+        publishedAt: {
+          not: null,
+          lte: now
+        }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { publishedAt: 'desc' }
     });
   }
 
+  // Fix: Added missing getBySlug method to allow retrieval of single post by its slug
   static async getBySlug(slug: string) {
     return await prisma.post.findUnique({
-      where: { slug }
+      where: { slug: slug.toLowerCase() },
     });
   }
 
   static async create(data: CreatePostDTO) {
-    const baseSlug = data.title
-      .toLowerCase()
-      .trim()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    
-    // Garante slug único adicionando timestamp se necessário
-    const slug = `${baseSlug}-${Date.now().toString().slice(-4)}`;
+    const slug = data.slug || this.generateSlug(data.title);
+    const now = new Date().toISOString();
 
     return await prisma.post.create({
       data: {
         title: data.title,
+        slug: slug.toLowerCase(),
         excerpt: data.excerpt,
         content: data.content,
         category: data.category,
         image: data.image,
-        slug,
         source: data.source,
-        published: data.published,
-        publishedAt: data.publishedAt ? new Date(data.publishedAt) : new Date(),
+        status: data.status || 'draft',
+        createdAt: now,
+        updatedAt: now,
+        publishedAt: data.status === 'published' ? (data.publishedAt || now) : null,
       }
     });
   }
 
-  static async delete(id: string) {
-    return await prisma.post.delete({
-      where: { id }
+  static async update(id: string, data: any) {
+    const now = new Date().toISOString();
+    
+    // Se estiver publicando agora e não tiver data, define
+    if (data.status === 'published' && !data.publishedAt) {
+      data.publishedAt = now;
+    }
+
+    return await prisma.post.update({
+      where: { id },
+      data: {
+        ...data,
+        updatedAt: now
+      }
     });
   }
 }
