@@ -165,7 +165,29 @@ export const dbService = {
     return data || [];
   },
 
-  /**
+   async getPublishedBlogs() {
+    if (isDemoMode) {
+      const saved = localStorage.getItem('holy_blogs');
+      const posts = saved ? JSON.parse(saved) : [];
+      return posts
+        .filter((post: any) => post.status === 'published')
+        .sort((a: any, b: any) => {
+          return new Date(b.publishedAt || b.createdAt).getTime() - new Date(a.publishedAt || a.createdAt).getTime();
+        });
+    }
+
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('status', 'published')
+      .order('publishedAt', { ascending: false });
+
+    if (error) {
+      console.error("Erro ao buscar blogs publicados:", error);
+      return [];
+    }
+    return data || [];
+  },/**
    * CRIAÇÃO DE POSTS (Explícita)
    */
   async saveBlog(post: any) {
