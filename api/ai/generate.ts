@@ -57,22 +57,20 @@ export default async function handler(req: Request) {
     const body = await req.json().catch(() => ({}));
     const { prompt, category, mode, postData } = body;
 
-<<<<<<< HEAD
     // URL DO WEBHOOK: Use a variável de ambiente ou o padrão
-    const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "https://felipealmeida0777.app.n8n.cloud/webhook/receberblog";
+    const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'https://felipealmeida0777.app.n8n.cloud/webhook/receberblog';
 
     if (!N8N_WEBHOOK_URL) {
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         success: false,
-        error: 'Configuração Incompleta', 
-        details: 'N8N_WEBHOOK_URL não está configurada' 
+        error: 'Configuração Incompleta',
+        details: 'N8N_WEBHOOK_URL não está configurada'
       }), { status: 500, headers });
     }
-=======
-    // URL DE PRODUÇÃO DO WEBHOOK
-    // Importante: No n8n, o Workflow deve estar com o botão "Active" ligado.
-    const N8N_WEBHOOK_URL = "https://felipealmeida0777.app.n8n.cloud/webhook/receberblog";
->>>>>>> 70afb77ba0fd4432a38fcf658babf047100accbf
+
+    if (!prompt && !postData) {
+      return new Response(JSON.stringify({ success: false, error: 'Missing payload' }), { status: 400, headers });
+    }
 
     const payload = {
       mode: mode || 'preview',
@@ -88,20 +86,10 @@ export default async function handler(req: Request) {
 
     const n8nResponse = await sendToN8n(N8N_WEBHOOK_URL, payload);
     const responseText = await n8nResponse.text();
-      // URL DO WEBHOOK: use variável de ambiente ou fallback padrão
-      const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "https://felipealmeida0777.app.n8n.cloud/webhook/receberblog";
 
-      if (!process.env.N8N_WEBHOOK_URL) {
-        console.warn('⚠️ N8N_WEBHOOK_URL não configurada — usando URL padrão.');
-      }
-        ]
-      }), { status: 404, headers });
-    }
-
-    let responseData;
+    let responseData: any;
     try {
       responseData = JSON.parse(responseText);
-      // Se n8n retornar um array (comum no nó Supabase), pegamos o primeiro item
       if (Array.isArray(responseData)) responseData = responseData[0];
     } catch {
       responseData = { success: false, error: 'Erro no JSON do n8n', raw: responseText };
@@ -109,9 +97,9 @@ export default async function handler(req: Request) {
 
     if (!n8nResponse.ok) {
       console.error(`❌ Erro n8n (${n8nResponse.status}):`, responseData);
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         success: false,
-        error: responseData.error || 'Erro na Automação n8n', 
+        error: responseData.error || 'Erro na Automação n8n',
         details: responseData.message || `Status HTTP ${n8nResponse.status}`,
         request_id: payload.request_id
       }), { status: n8nResponse.status, headers });
@@ -125,12 +113,12 @@ export default async function handler(req: Request) {
     }), { status: 200, headers });
 
   } catch (error: any) {
-    console.error(`❌ Falha Crítica: ${error.message}`);
-    return new Response(JSON.stringify({ 
+    console.error(`❌ Falha Crítica: ${error?.message ?? error}`);
+    return new Response(JSON.stringify({
       success: false,
       error: 'Falha Crítica de Conexão',
-      details: error.message || 'Erro desconhecido ao conectar ao n8n',
-      type: error.name,
+      details: error?.message || 'Erro desconhecido ao conectar ao n8n',
+      type: error?.name,
       troubleshooting: [
         '• Verifique se a URL do webhook está configurada',
         '• Confirme que o n8n está online',
