@@ -57,6 +57,7 @@ export default async function handler(req: Request) {
     const body = await req.json().catch(() => ({}));
     const { prompt, category, mode, postData } = body;
 
+<<<<<<< HEAD
     // URL DO WEBHOOK: Use a variável de ambiente ou o padrão
     const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "https://felipealmeida0777.app.n8n.cloud/webhook/receberblog";
 
@@ -67,6 +68,11 @@ export default async function handler(req: Request) {
         details: 'N8N_WEBHOOK_URL não está configurada' 
       }), { status: 500, headers });
     }
+=======
+    // URL DE PRODUÇÃO DO WEBHOOK
+    // Importante: No n8n, o Workflow deve estar com o botão "Active" ligado.
+    const N8N_WEBHOOK_URL = "https://felipealmeida0777.app.n8n.cloud/webhook/receberblog";
+>>>>>>> 70afb77ba0fd4432a38fcf658babf047100accbf
 
     const payload = {
       mode: mode || 'preview',
@@ -82,22 +88,12 @@ export default async function handler(req: Request) {
 
     const n8nResponse = await sendToN8n(N8N_WEBHOOK_URL, payload);
     const responseText = await n8nResponse.text();
-    
-    // Se o webhook não estiver "Active", o n8n retorna 404
-    if (n8nResponse.status === 404) {
-      console.error(`❌ Webhook não encontrado: ${N8N_WEBHOOK_URL}`);
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: 'Workflow n8n Inativo ou URL Incorreta', 
-        details: `Verifique se o workflow está ATIVO na URL: ${N8N_WEBHOOK_URL}`,
-        webhook_url: N8N_WEBHOOK_URL,
-        troubleshooting: [
-          '1. Acesse seu dashboard do n8n Cloud',
-          '2. Abra o workflow',
-          '3. Localize o nó "Webhook"',
-          '4. Copie a URL completa',
-          '5. Confirme que o botão "Active" está LIGADO',
-          '6. Atualize N8N_WEBHOOK_URL no .env.local'
+      // URL DO WEBHOOK: use variável de ambiente ou fallback padrão
+      const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "https://felipealmeida0777.app.n8n.cloud/webhook/receberblog";
+
+      if (!process.env.N8N_WEBHOOK_URL) {
+        console.warn('⚠️ N8N_WEBHOOK_URL não configurada — usando URL padrão.');
+      }
         ]
       }), { status: 404, headers });
     }
