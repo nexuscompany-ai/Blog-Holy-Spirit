@@ -76,8 +76,7 @@ export const dbService = {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
     
-    // Busca o perfil para verificar o role
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', data.user.id)
@@ -91,14 +90,11 @@ export const dbService = {
   },
 
   async getSession() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return null;
-    try {
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
-      return { user: session.user, role: profile?.role || 'user' };
-    } catch {
-      return { user: session.user, role: 'user' };
-    }
+    // Retorna sessão simulada para permitir acesso livre ao admin durante o desenvolvimento
+    return { 
+      user: { id: 'dev-mode', email: 'admin@holyspirit.com' }, 
+      role: 'admin' 
+    };
   },
 
   async signOut() {
@@ -184,7 +180,6 @@ export const dbService = {
       updatedAt: now
     };
 
-    // Se estiver mudando para publicado agora e não tiver data definida
     if (updates.status === 'published' && !updates.publishedAt) {
       finalUpdates.publishedAt = now;
     }

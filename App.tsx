@@ -7,7 +7,6 @@ import BlogSection from './components/BlogSection';
 import CTABanner from './components/CTABanner';
 import Footer from './components/Footer';
 import AdminLayout from './components/admin/AdminLayout';
-import Login from './components/admin/Login';
 import { dbService, supabase } from './db';
 
 const App: React.FC = () => {
@@ -61,13 +60,8 @@ const App: React.FC = () => {
     );
   }
 
-  // LOGICA DE PROTEÇÃO DE ROTA (Middleware de Aplicação)
+  // Acesso administrativo liberado temporariamente
   if (path.startsWith('/admin')) {
-    // Se não houver sessão ou não for admin, forçar Login
-    if (!session || session.role !== 'admin') {
-      return <Login onLoginSuccess={() => navigate('/admin')} />;
-    }
-    // Se autenticado como admin, mostrar Painel
     return <AdminLayout exitAdmin={() => navigate('/')} />;
   }
 

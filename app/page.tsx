@@ -79,11 +79,8 @@ export default function Home() {
     );
   }
 
-  // Admin Route Protection
+  // Admin Route - Acesso liberado temporariamente sem login
   if (path.startsWith('/admin')) {
-    if (!session || session.role !== 'admin') {
-      return <Login onLoginSuccess={handleLoginSuccess} />;
-    }
     return <AdminLayout exitAdmin={() => navigate('/')} />;
   }
 
