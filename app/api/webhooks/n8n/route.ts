@@ -134,6 +134,12 @@ export async function POST(request: Request) {
       try {
         console.log(`💾 [${requestId}] Salvando post no banco (tentativa ${retryCount + 1}/${MAX_RETRIES + 1})...`);
         
+        // Determine published and publishedAt correctly
+        const publishedFlag = body.published === true || body.published === 'true' || body.published === undefined && false;
+        const publishedAtValue = (body.published === true || body.published === 'true')
+          ? (body.publishedAt ? body.publishedAt : new Date().toISOString())
+          : undefined;
+
         newPost = await PostsService.create({
           title: body.title,
           excerpt: body.excerpt,
@@ -141,8 +147,8 @@ export async function POST(request: Request) {
           category: body.category,
           image: body.image || 'https://via.placeholder.com/800x400?text=Blog',
           source: 'ai',
-          published: body.published !== false,
-          publishedAt: body.publishedAt || new Date().toISOString(),
+          published: body.published !== false && body.published !== 'false',
+          publishedAt: publishedAtValue,
         });
 
         console.log(`✅ [${requestId}] Post salvo com sucesso: ${newPost.id}`);

@@ -12,6 +12,7 @@ const MyBlogs: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
   const [lastSync, setLastSync] = useState<string>('');
+  const [showArchived, setShowArchived] = useState(false);
 
   const loadBlogs = async (isManual = false) => {
     setLoading(true);
@@ -20,7 +21,9 @@ const MyBlogs: React.FC = () => {
       if (isManual) await new Promise(resolve => setTimeout(resolve, 800));
       
       const saved = await dbService.getBlogs();
-      setBlogs(saved);
+      // Por padrão exibimos apenas posts não arquivados
+      const filtered = showArchived ? saved : saved.filter((b: any) => !b.archived);
+      setBlogs(filtered);
       setLastSync(new Date().toLocaleTimeString('pt-BR'));
       
       if (isManual) {
@@ -41,7 +44,8 @@ const MyBlogs: React.FC = () => {
     enabled: true,
     onSuccess: (data) => {
       if (data.posts && Array.isArray(data.posts)) {
-        setBlogs(data.posts);
+        const filtered = showArchived ? data.posts : data.posts.filter((b: any) => !b.archived);
+        setBlogs(filtered);
         setLastSync(new Date().toLocaleTimeString('pt-BR'));
       }
     },
@@ -54,11 +58,32 @@ const MyBlogs: React.FC = () => {
     loadBlogs();
   }, []);
 
+  // Recarrega quando mudar o filtro de arquivados
+  useEffect(() => {
+    loadBlogs();
+  }, [showArchived]);
+
   const deleteBlog = async (id: string) => {
     if (confirm('Deseja excluir este registro permanentemente?')) {
       await dbService.deleteBlog(id);
       loadBlogs();
     }
+  };
+
+  const toggleArchive = async (id: string, archived: boolean) => {
+    const verb = archived ? 'desarquivar' : 'arquivar';
+    if (!confirm(`Deseja ${verb} este post?`)) return;
+    await dbService.updateBlog(id, { archived: !archived });
+    loadBlogs();
+  };
+
+  const togglePublish = async (id: string, published: boolean) => {
+    const verb = published ? 'despublicar' : 'publicar';
+    if (!confirm(`Deseja ${verb} este post?`)) return;
+    const updates: any = { published: !published };
+    if (!published) updates.publishedAt = new Date().toISOString();
+    await dbService.updateBlog(id, updates);
+    loadBlogs();
   };
 
   return (
@@ -81,18 +106,28 @@ const MyBlogs: React.FC = () => {
             </div>
           )}
           
-          <button 
-            onClick={() => loadBlogs(true)} 
-            disabled={loading}
-            className={`flex items-center gap-3 text-[10px] font-black uppercase px-8 py-4 rounded-2xl transition-all ${
-              loading 
-              ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
-              : 'bg-[#cfec0f] text-black hover:scale-105 shadow-xl shadow-[#cfec0f]/10'
-            }`}
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> 
-            {loading ? 'Sincronizando Templo...' : 'Sincronizar com Banco'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => loadBlogs(true)} 
+              disabled={loading}
+              className={`flex items-center gap-3 text-[10px] font-black uppercase px-8 py-4 rounded-2xl transition-all ${
+                loading 
+                ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
+                : 'bg-[#cfec0f] text-black hover:scale-105 shadow-xl shadow-[#cfec0f]/10'
+              }`}
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> 
+              {loading ? 'Sincronizando Templo...' : 'Sincronizar com Banco'}
+            </button>
+
+            <button
+              onClick={() => setShowArchived(s => !s)}
+              title={showArchived ? 'Ocultar Arquivados' : 'Mostrar Arquivados'}
+              className="text-[10px] font-black uppercase px-4 py-3 rounded-2xl border border-white/5 bg-black/20 hover:bg-black/30"
+            >
+              {showArchived ? 'Arquivados: ON' : 'Arquivados: OFF'}
+            </button>
+          </div>
         </div>
       </div>
       
@@ -144,7 +179,11 @@ const MyBlogs: React.FC = () => {
                     </td>
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-2">
-                        {isScheduled ? (
+                        {blog.archived ? (
+                          <span className="flex items-center gap-2 text-[9px] font-black uppercase px-4 py-1.5 rounded-full bg-zinc-800/10 text-zinc-400 border border-zinc-700/20">
+                            <AlertCircle size={10} /> Arquivado
+                          </span>
+                        ) : isScheduled ? (
                           <span className="flex items-center gap-2 text-[9px] font-black uppercase px-4 py-1.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
                             <Clock size={10} /> Agendado
                           </span>
@@ -168,12 +207,35 @@ const MyBlogs: React.FC = () => {
                     </td>
                     <td className="px-8 py-6 text-right">
                       <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => setShowArchived(s => !s)}
+                          title={showArchived ? 'Ocultar Arquivados' : 'Mostrar Arquivados'}
+                          className="p-3 bg-black border border-white/5 rounded-xl text-zinc-500 hover:text-[#cfec0f] transition-all mr-2"
+                        >
+                          {showArchived ? 'Arquivados: ON' : 'Arquivados: OFF'}
+                        </button>
                         <button 
                           title="Visualizar no Site"
                           className="p-3 bg-black border border-white/5 hover:border-[#cfec0f]/50 rounded-xl text-zinc-500 hover:text-[#cfec0f] transition-all"
                         >
                           <Eye size={16} />
                         </button>
+                        <button
+                          onClick={() => togglePublish(blog.id, blog.published)}
+                          title={blog.published ? 'Despublicar' : 'Publicar'}
+                          className={`p-3 bg-black border border-white/5 rounded-xl text-zinc-500 hover:text-${blog.published ? 'red' : 'green'}-500 transition-all`}
+                        >
+                          {blog.published ? 'Despublicar' : 'Publicar'}
+                        </button>
+
+                        <button
+                          onClick={() => toggleArchive(blog.id, !!blog.archived)}
+                          title={blog.archived ? 'Desarquivar' : 'Arquivar'}
+                          className={`p-3 bg-black border border-white/5 rounded-xl text-zinc-500 hover:text-${blog.archived ? 'green' : 'yellow'}-400 transition-all`}
+                        >
+                          {blog.archived ? 'Desarquivar' : 'Arquivar'}
+                        </button>
+
                         <button 
                           onClick={() => deleteBlog(blog.id)} 
                           title="Excluir Permanentemente"

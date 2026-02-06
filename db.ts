@@ -159,6 +159,15 @@ export const dbService = {
     return data || [];
   },
 
+  async updateBlog(id: string, updates: Record<string, any>) {
+    if (isDemoMode) {
+      const current = await this.getBlogs();
+      localStorage.setItem('holy_blogs', JSON.stringify(current.map((b: any) => b.id === id ? { ...b, ...updates } : b)));
+      return;
+    }
+    await supabase.from('posts').update(updates).eq('id', id);
+  },
+
   async saveBlog(post: any) {
     if (isDemoMode) {
       const current = await this.getBlogs();
