@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS posts (
     published_at TIMESTAMPTZ DEFAULT NULL
 );
 
--- Tabela de Eventos
+-- Tabela de Eventos (Snake Case Fix)
 CREATE TABLE IF NOT EXISTS events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title TEXT NOT NULL,
@@ -28,9 +28,9 @@ CREATE TABLE IF NOT EXISTS events (
     category TEXT DEFAULT 'Workshop',
     status TEXT DEFAULT 'active',
     image TEXT,
-    whatsappEnabled BOOLEAN DEFAULT false,
-    whatsappNumber TEXT,
-    whatsappMessage TEXT
+    whatsapp_enabled BOOLEAN DEFAULT false,
+    whatsapp_number TEXT,
+    whatsapp_message TEXT
 );
 
 -- Tabela de Configurações

@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 const getEnv = (name: string) => {
@@ -11,29 +12,6 @@ const supabaseUrl = getEnv('VITE_SUPABASE_URL') || 'https://xkapuhuuqqjmcxxrnpcf
 const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrYXB1aHV1cXFqbWN4eHJucGNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2Mjk0MTIsImV4cCI6MjA4NTIwNTQxMn0.tbA_C45JUPLUwIOb8IUsf2TGqW57MBIpLiG2z8i3NPE';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
-
-const mapEventToDB = (event: any) => ({
-  id: event.id,
-  title: event.title,
-  date: event.date,
-  time: event.time,
-  location: event.location,
-  description: event.description,
-  category: event.category,
-  status: event.status,
-  image: event.image,
-  whatsapp_enabled: event.whatsappEnabled,
-  whatsapp_number: event.whatsappNumber,
-  whatsapp_message: event.whatsappMessage
-});
-
-const mapEventFromDB = (event: any) => ({
-  ...event,
-  whatsappEnabled: event.whatsapp_enabled,
-  whatsappNumber: event.whatsapp_number,
-  whatsappMessage: event.whatsapp_message
-});
-
 
 export interface HolySettings {
   id?: string;
@@ -74,6 +52,31 @@ export interface DashboardMetrics {
   automationActive: boolean;
 }
 
+const mapEventToDB = (event: Partial<HolyEvent>) => {
+  const mapped: any = {};
+  const directKeys = ['id', 'title', 'date', 'time', 'location', 'description', 'category', 'status', 'image'] as const;
+  
+  directKeys.forEach(key => {
+    if (event[key] !== undefined) mapped[key] = event[key];
+  });
+
+  if (event.whatsappEnabled !== undefined) mapped.whatsapp_enabled = event.whatsappEnabled;
+  if (event.whatsappNumber !== undefined) mapped.whatsapp_number = event.whatsappNumber;
+  if (event.whatsappMessage !== undefined) mapped.whatsapp_message = event.whatsappMessage;
+
+  return mapped;
+};
+
+const mapEventFromDB = (data: any): HolyEvent => {
+  const { whatsapp_enabled, whatsapp_number, whatsapp_message, ...rest } = data;
+  return {
+    ...rest,
+    whatsappEnabled: whatsapp_enabled,
+    whatsappNumber: whatsapp_number,
+    whatsappMessage: whatsapp_message,
+  } as HolyEvent;
+};
+
 const createSlug = (text: string) => {
   if (!text) return `post-${Math.random().toString(36).substring(2, 7)}`;
   const cleanText = text
@@ -90,7 +93,6 @@ const createSlug = (text: string) => {
 
 export const dbService = {
   async login(email: string, pass: string) {
-    // Fix: Cast supabase.auth to any to resolve property missing error in TypeScript environments
     const { data, error } = await (supabase.auth as any).signInWithPassword({ email, password: pass });
     if (error) throw error;
     
@@ -101,7 +103,6 @@ export const dbService = {
       .maybeSingle();
 
     if (profile?.role !== 'admin') {
-      // Fix: Cast supabase.auth to any to resolve property missing error in TypeScript environments
       await (supabase.auth as any).signOut();
       throw new Error('Acesso restrito a administradores.');
     }
@@ -116,7 +117,6 @@ export const dbService = {
   },
 
   async signOut() {
-    // Fix: Cast supabase.auth to any to resolve property missing error in TypeScript environments
     await (supabase.auth as any).signOut();
     window.location.href = '/';
   },
@@ -204,7 +204,6 @@ export const dbService = {
     const now = new Date().toISOString();
     const payload: any = { ...updates };
     
-    // Removendo campos legados e garantindo fonte da verdade única
     delete payload.published;
     delete payload.status;
     delete payload.publishedAt;
@@ -229,24 +228,37 @@ export const dbService = {
     if (error) throw error;
   },
 
-  async getEvents() {
+  async getEvents(): Promise<HolyEvent[]> {
     try {
-      const { data, error } = await supabase.from('events').select('*').order('date', { ascending: true });
-      if (error) return [];
-      return data || [];
-    } catch {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('date', { ascending: true });
+        
+      if (error) throw error;
+      return (data || []).map(mapEventFromDB);
+    } catch (err) {
+      console.error("Erro ao buscar eventos:", err);
       return [];
     }
   },
 
-  async saveEvent(event: any) {
-    const { error } = await supabase.from('events').insert([event]);
-    if (error) throw error;
+  async saveEvent(event: HolyEvent) {
+    const dbData = mapEventToDB(event);
+    const { error } = await supabase.from('events').insert([dbData]);
+    if (error) {
+      console.error("Erro ao salvar evento:", error);
+      throw error;
+    }
   },
 
   async updateEvent(id: string, updates: Partial<HolyEvent>) {
-    const { error } = await supabase.from('events').update(updates).eq('id', id);
-    if (error) throw error;
+    const dbData = mapEventToDB(updates);
+    const { error } = await supabase.from('events').update(dbData).eq('id', id);
+    if (error) {
+      console.error("Erro ao atualizar evento:", error);
+      throw error;
+    }
   },
 
   async deleteEvent(id: string) {
@@ -270,4 +282,3 @@ export const dbService = {
     if (error) throw error;
   }
 };
-
