@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 const getEnv = (name: string) => {
@@ -68,7 +67,8 @@ const createSlug = (text: string) => {
 
 export const dbService = {
   async login(email: string, pass: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    // Fix: Cast supabase.auth to any to resolve property missing error in TypeScript environments
+    const { data, error } = await (supabase.auth as any).signInWithPassword({ email, password: pass });
     if (error) throw error;
     
     const { data: profile } = await supabase
@@ -78,7 +78,8 @@ export const dbService = {
       .maybeSingle();
 
     if (profile?.role !== 'admin') {
-      await supabase.auth.signOut();
+      // Fix: Cast supabase.auth to any to resolve property missing error in TypeScript environments
+      await (supabase.auth as any).signOut();
       throw new Error('Acesso restrito a administradores.');
     }
     return { ...data, role: profile.role };
@@ -92,7 +93,8 @@ export const dbService = {
   },
 
   async signOut() {
-    await supabase.auth.signOut();
+    // Fix: Cast supabase.auth to any to resolve property missing error in TypeScript environments
+    await (supabase.auth as any).signOut();
     window.location.href = '/';
   },
 
@@ -142,13 +144,7 @@ export const dbService = {
         .order('created_at', { ascending: false });
       
       if (error) {
-        const { data: retryData, error: retryError } = await supabase
-          .from('posts')
-          .select('*')
-          .order('createdAt', { ascending: false });
-          
-        if (retryError) return [];
-        return retryData || [];
+        return [];
       }
       return data || [];
     } catch {
@@ -170,30 +166,22 @@ export const dbService = {
       source: post.source || 'manual',
       created_at: now,
       updated_at: now,
-      published_at: post.status === 'published' ? now : null
+      published_at: post.published_at || null
     };
     
     const { error } = await supabase.from('posts').insert([finalPost]);
-    if (error) throw error;
+    if (error) {
+      console.error("Erro ao salvar post:", error);
+      throw error;
+    }
   },
 
   async updateBlog(id: string, updates: any) {
-    if (!id) throw new Error("ID do post não fornecido para atualização.");
-    
+    if (!id) throw new Error("ID do post obrigatório.");
     const now = new Date().toISOString();
-    
     const payload: any = { ...updates };
     
-    // Tratamento estrito de publicação usando published_at
-    if (updates.hasOwnProperty('published_at')) {
-      payload.published_at = updates.published_at;
-    } else if (updates.hasOwnProperty('published')) {
-      // Fallback caso a UI ainda passe 'published'
-      payload.published_at = updates.published ? now : null;
-      delete payload.published;
-    }
-
-    // Removendo campos legados para evitar conflitos de schema
+    // Removendo campos legados e garantindo fonte da verdade única
     delete payload.published;
     delete payload.status;
     delete payload.publishedAt;
@@ -208,11 +196,7 @@ export const dbService = {
       .eq('id', id);
 
     if (error) {
-      console.error("Erro ao atualizar post via published_at:", {
-        message: error.message,
-        details: error.details,
-        code: error.code
-      });
+      console.error("Erro na atualização via published_at:", error);
       throw error;
     }
   },

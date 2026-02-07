@@ -32,7 +32,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     content: '',
     category: 'Musculação',
     image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
-    status: 'draft', // Por padrão cria como rascunho
     source: 'manual'
   });
 
@@ -45,8 +44,8 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     try {
       const result = await aiService.getPreview(iaPrompt, targetCategory);
       if (result.post) {
-        // IA sempre retorna como Draft
-        setPreviewPost({ ...result.post, status: 'draft', source: 'ai' });
+        // IA entra sempre como rascunho (published_at: null)
+        setPreviewPost({ ...result.post, published_at: null, source: 'ai' });
       } else {
         throw new Error("O n8n retornou sucesso mas o post está vazio.");
       }
@@ -63,7 +62,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     setErrorMsg('');
     
     try {
-      // Salva no banco via dbService (que já trata os campos obrigatórios)
       await dbService.saveBlog(previewPost);
       setSuccess(true);
       setTimeout(() => {
@@ -77,14 +75,17 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     }
   };
 
-  const publishArticleManual = async (status: 'draft' | 'published') => {
+  const publishArticleManual = async (publish: boolean) => {
     if (!articleData.title) {
       setErrorMsg("O título é obrigatório.");
       return;
     }
     setLoading(true);
     try {
-      await dbService.saveBlog({ ...articleData, status });
+      await dbService.saveBlog({ 
+        ...articleData, 
+        published_at: publish ? new Date().toISOString() : null 
+      });
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
@@ -176,7 +177,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                     <ShieldCheck size={16} />
                     <span className="text-[10px] font-black uppercase tracking-widest">Pipeline Validado</span>
                   </div>
-                  <p className="text-zinc-400 text-xs">O artigo será salvo como <strong>Rascunho</strong>. Você precisará publicá-lo na lista "Meus Blogs".</p>
+                  <p className="text-zinc-400 text-xs">O artigo será salvo como <strong>Rascunho</strong>. Você precisará lançá-lo no templo para torná-lo público.</p>
                 </div>
 
                 <div className="flex flex-col gap-3">
@@ -266,13 +267,13 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
 
               <div className="flex flex-col gap-3">
                 <button 
-                  onClick={() => publishArticleManual('published')}
+                  onClick={() => publishArticleManual(true)}
                   className="w-full bg-[#cfec0f] text-black font-black py-5 rounded-2xl text-[10px] uppercase tracking-widest hover:scale-[1.02] shadow-xl"
                 >
-                  PUBLICAR AGORA
+                  LANÇAR AGORA
                 </button>
                 <button 
-                  onClick={() => publishArticleManual('draft')}
+                  onClick={() => publishArticleManual(false)}
                   className="w-full bg-white/5 text-zinc-500 font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest border border-white/5 hover:text-white transition-all"
                 >
                   SALVAR RASCUNHO
