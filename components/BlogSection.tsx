@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Calendar as CalendarIcon, MapPin, ArrowLeft, Sparkles, BookOpen } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, ArrowLeft, Sparkles, BookOpen, X, Clock, Info } from 'lucide-react';
 import { dbService, HolyEvent, HolySettings, supabase } from '../db';
 import BlogCard from './BlogCard';
 
@@ -22,14 +22,14 @@ const BlogSection: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'articles' | 'events'>('articles');
   const [settings, setSettings] = useState<HolySettings | null>(null);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<HolyEvent | null>(null);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Query direta ao Supabase filtrando por published_at IS NOT NULL
-        const { data: publishedPostsData, error: postsError } = await supabase
+        const { data: publishedPostsData } = await supabase
           .from('posts')
           .select('*')
           .not('published_at', 'is', null)
@@ -42,7 +42,6 @@ const BlogSection: React.FC = () => {
 
         const now = new Date();
         const finalPosts = (publishedPostsData || []).filter((p: any) => {
-          // Filtro adicional de data para agendamentos futuros
           const pDate = p.published_at;
           return pDate ? new Date(pDate) <= now : false;
         });
@@ -59,11 +58,8 @@ const BlogSection: React.FC = () => {
     fetchData();
 
     const handleHash = () => {
-      if (window.location.hash === '#eventos') {
-        setActiveTab('events');
-      } else if (window.location.hash === '#blog') {
-        setActiveTab('articles');
-      }
+      if (window.location.hash === '#eventos') setActiveTab('events');
+      else if (window.location.hash === '#blog') setActiveTab('articles');
     };
     window.addEventListener('hashchange', handleHash);
     handleHash();
@@ -94,10 +90,12 @@ const BlogSection: React.FC = () => {
               </p>
             </header>
 
-            <div className="aspect-video rounded-[60px] overflow-hidden border border-white/5 shadow-2xl relative">
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
-              <img src={selectedPost.image} alt={selectedPost.title} className="w-full h-full object-cover" />
-            </div>
+            {selectedPost.image && selectedPost.image.length > 10 && (
+              <div className="aspect-video rounded-[60px] overflow-hidden border border-white/5 shadow-2xl relative">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
+                <img src={selectedPost.image} alt={selectedPost.title} className="w-full h-full object-cover" />
+              </div>
+            )}
 
             <div className="prose prose-invert max-w-none text-zinc-400 text-xl leading-loose space-y-10 font-medium pb-20">
               <div dangerouslySetInnerHTML={{ __html: selectedPost.content }} />
@@ -125,6 +123,59 @@ const BlogSection: React.FC = () => {
 
   return (
     <section id="blog" className="py-32 bg-black">
+      {/* Event Details Modal */}
+      {selectedEvent && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-xl bg-black/60 animate-in fade-in duration-300">
+          <div className="bg-zinc-950 border border-white/10 w-full max-w-3xl rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="relative aspect-video">
+              <img src={selectedEvent.image} className="w-full h-full object-cover" alt={selectedEvent.title} />
+              <button 
+                onClick={() => setSelectedEvent(null)}
+                className="absolute top-6 right-6 p-3 bg-black/50 text-white rounded-full backdrop-blur-md hover:bg-neon hover:text-black transition-all"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-10 space-y-8">
+              <div className="space-y-4">
+                <span className="bg-neon text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">{selectedEvent.category}</span>
+                <h2 className="text-4xl md:text-5xl font-black uppercase italic italic tracking-tighter text-white">{selectedEvent.title}</h2>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6 py-6 border-y border-white/5">
+                <div className="space-y-1">
+                  <p className="text-zinc-600 text-[9px] font-black uppercase tracking-widest flex items-center gap-2"><CalendarIcon size={12}/> Data</p>
+                  <p className="text-white font-bold">{new Date(selectedEvent.date).toLocaleDateString('pt-BR')}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-zinc-600 text-[9px] font-black uppercase tracking-widest flex items-center gap-2"><Clock size={12}/> Horário</p>
+                  <p className="text-white font-bold">{selectedEvent.time}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1 space-y-1">
+                  <p className="text-zinc-600 text-[9px] font-black uppercase tracking-widest flex items-center gap-2"><MapPin size={12}/> Local</p>
+                  <p className="text-white font-bold italic">{selectedEvent.location}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-neon">Sobre este momento</h4>
+                <p className="text-zinc-400 leading-loose text-lg">{selectedEvent.description || 'Nenhuma descrição adicional informada para este evento.'}</p>
+              </div>
+
+              {selectedEvent.whatsappEnabled && (
+                <a 
+                  href={`https://wa.me/${selectedEvent.whatsappNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(selectedEvent.whatsappMessage || '')}${encodeURIComponent(selectedEvent.title)}`}
+                  target="_blank"
+                  className="btn-primary w-full py-6 text-sm"
+                >
+                  Confirmar presença no WhatsApp
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-12">
           <div className="space-y-6">
@@ -183,18 +234,22 @@ const BlogSection: React.FC = () => {
             {events.map((event) => {
               const waLink = event.whatsappEnabled 
                 ? `https://wa.me/${event.whatsappNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(event.whatsappMessage || '')}${encodeURIComponent(event.title)}`
-                : `https://wa.me/${settings?.phone?.replace(/\D/g, '') || '5511999999999'}`;
+                : null;
 
               return (
-                <div key={event.id} className="glass-card rounded-[40px] overflow-hidden group">
+                <div 
+                  key={event.id} 
+                  onClick={() => setSelectedEvent(event)}
+                  className="glass-card rounded-[40px] overflow-hidden group cursor-pointer"
+                >
                   <div className="aspect-[4/3] relative overflow-hidden">
                     <img 
                       src={event.image} 
                       alt={event.title}
                       className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-110"
                     />
-                    <div className="absolute bottom-6 left-6">
-                      <span className="bg-neon text-black px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest">
+                    <div className="absolute top-6 left-6 flex gap-2">
+                       <span className="bg-neon text-black px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest">
                         {event.category}
                       </span>
                     </div>
@@ -207,13 +262,20 @@ const BlogSection: React.FC = () => {
                       <div className="flex items-center gap-3"><CalendarIcon size={16} className="text-neon" /> {new Date(event.date).toLocaleDateString('pt-BR')}</div>
                       <div className="flex items-center gap-3"><MapPin size={16} className="text-neon" /> {event.location}</div>
                     </div>
-                    <a 
-                      href={waLink}
-                      target="_blank"
-                      className="btn-primary w-full py-4 text-xs"
-                    >
-                      {event.whatsappEnabled ? 'Confirmar via WhatsApp' : 'Garantir Vaga'}
-                    </a>
+                    {waLink ? (
+                      <a 
+                        href={waLink}
+                        target="_blank"
+                        onClick={(e) => e.stopPropagation()}
+                        className="btn-primary w-full py-4 text-xs"
+                      >
+                        Confirmar via WhatsApp
+                      </a>
+                    ) : (
+                      <button className="w-full py-4 text-[10px] font-black uppercase tracking-widest border border-white/10 rounded-xl text-zinc-500 group-hover:text-white group-hover:border-white/30 transition-all flex items-center justify-center gap-2">
+                         <Info size={14} /> Ver Detalhes
+                      </button>
+                    )}
                   </div>
                 </div>
               );
