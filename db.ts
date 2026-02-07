@@ -12,6 +12,29 @@ const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY') || 'eyJhbGciOiJIUzI1NiIsInR
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+const mapEventToDB = (event: any) => ({
+  id: event.id,
+  title: event.title,
+  date: event.date,
+  time: event.time,
+  location: event.location,
+  description: event.description,
+  category: event.category,
+  status: event.status,
+  image: event.image,
+  whatsapp_enabled: event.whatsappEnabled,
+  whatsapp_number: event.whatsappNumber,
+  whatsapp_message: event.whatsappMessage
+});
+
+const mapEventFromDB = (event: any) => ({
+  ...event,
+  whatsappEnabled: event.whatsapp_enabled,
+  whatsappNumber: event.whatsapp_number,
+  whatsappMessage: event.whatsapp_message
+});
+
+
 export interface HolySettings {
   id?: string;
   gymName: string;
@@ -247,3 +270,4 @@ export const dbService = {
     if (error) throw error;
   }
 };
+
