@@ -1,11 +1,12 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 
 export const config = {
   runtime: 'edge',
 };
 
-// Initialize the Google GenAI SDK with the mandatory environment variable
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Inicializa o SDK com a variável de ambiente obrigatória
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 const SYSTEM_PROMPT = `Você é um Criador de Conteúdo Profissional para Blog de Academia, especialista em marketing de conteúdo, SEO avançado, copywriting persuasivo e automação com IA. Seu objetivo é gerar artigos de alto desempenho que atraiam tráfego orgânico, eduquem o público, aumentem autoridade da marca e convertam leitores em alunos.
 
@@ -30,10 +31,6 @@ Profissional, motivador, confiável, humano e inspirador.
 🚀 AUTOMAÇÃO E PADRÃO DE ENTREGA
 Sempre que gerar um artigo, entregue também: meta title, meta description, palavras-chave usadas, slug de URL e CTA final.`;
 
-/**
- * GEMINI AI GENERATOR
- * Replaces the previous n8n proxy with direct Gemini 3 Pro integration
- */
 export default async function handler(req: Request) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -50,12 +47,14 @@ export default async function handler(req: Request) {
     const body = await req.json().catch(() => ({}));
     const { prompt, category, mode } = body;
 
-    // Handle health check/ping from Dashboard
     if (prompt === 'PING') {
       return new Response(JSON.stringify({ success: true, message: "Gemini 3 Pro Online" }), { status: 200, headers });
     }
 
-    // Call Gemini 3 Pro for high-quality content generation
+    if (!process.env.API_KEY) {
+      throw new Error("API_KEY não configurada no ambiente.");
+    }
+
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: `Gere um artigo de blog para uma academia sobre o seguinte tema: ${prompt || 'Dicas de musculação'}. Categoria: ${category || 'Geral'}.`,
@@ -79,14 +78,13 @@ export default async function handler(req: Request) {
       },
     });
 
-    const jsonStr = response.text;
+    const jsonStr = response.text?.trim();
     if (!jsonStr) {
-      throw new Error("No text content returned from Gemini API");
+      throw new Error("A API do Gemini retornou uma resposta vazia.");
     }
 
     const postData = JSON.parse(jsonStr);
 
-    // Format response to match expected UI service structure
     return new Response(JSON.stringify({
       success: true,
       mode: mode || 'preview',
