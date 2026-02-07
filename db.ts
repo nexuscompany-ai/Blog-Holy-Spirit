@@ -52,29 +52,43 @@ export interface DashboardMetrics {
   automationActive: boolean;
 }
 
+/**
+ * MAPPERS PARA COMPATIBILIDADE DEFINITIVA
+ * Converte camelCase (JS) <-> snake_case (Postgres/Supabase)
+ */
 const mapEventToDB = (event: Partial<HolyEvent>) => {
   const mapped: any = {};
-  const directKeys = ['id', 'title', 'date', 'time', 'location', 'description', 'category', 'status', 'image'] as const;
   
-  directKeys.forEach(key => {
-    if (event[key] !== undefined) mapped[key] = event[key];
+  // Colunas diretas (mesmo nome)
+  const directFields = ['title', 'date', 'time', 'location', 'description', 'category', 'status', 'image'];
+  directFields.forEach(field => {
+    if ((event as any)[field] !== undefined) mapped[field] = (event as any)[field];
   });
 
+  // Colunas mapeadas (camelCase -> snake_case)
   if (event.whatsappEnabled !== undefined) mapped.whatsapp_enabled = event.whatsappEnabled;
   if (event.whatsappNumber !== undefined) mapped.whatsapp_number = event.whatsappNumber;
   if (event.whatsappMessage !== undefined) mapped.whatsapp_message = event.whatsappMessage;
 
+  // Nota: Não incluímos ID no mapeamento de atualização/inserção para evitar conflitos de tipo UUID
   return mapped;
 };
 
 const mapEventFromDB = (data: any): HolyEvent => {
-  const { whatsapp_enabled, whatsapp_number, whatsapp_message, ...rest } = data;
   return {
-    ...rest,
-    whatsappEnabled: whatsapp_enabled,
-    whatsappNumber: whatsapp_number,
-    whatsappMessage: whatsapp_message,
-  } as HolyEvent;
+    id: data.id,
+    title: data.title || '',
+    date: data.date || '',
+    time: data.time || '',
+    location: data.location || '',
+    description: data.description || '',
+    category: data.category || 'Workshop',
+    status: data.status || 'active',
+    image: data.image || '',
+    whatsappEnabled: !!data.whatsapp_enabled,
+    whatsappNumber: data.whatsapp_number || '',
+    whatsappMessage: data.whatsapp_message || ''
+  };
 };
 
 const createSlug = (text: string) => {
@@ -166,9 +180,7 @@ export const dbService = {
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) {
-        return [];
-      }
+      if (error) return [];
       return data || [];
     } catch {
       return [];
@@ -228,6 +240,8 @@ export const dbService = {
     if (error) throw error;
   },
 
+  // --- MÉTODOS DE EVENTOS CORRIGIDOS ---
+
   async getEvents(): Promise<HolyEvent[]> {
     try {
       const { data, error } = await supabase
@@ -235,29 +249,57 @@ export const dbService = {
         .select('*')
         .order('date', { ascending: true });
         
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase REST Error (List):", error);
+        throw error;
+      }
       return (data || []).map(mapEventFromDB);
     } catch (err) {
-      console.error("Erro ao buscar eventos:", err);
+      console.error("Erro fatal ao listar eventos:", err);
       return [];
     }
   },
 
-  async saveEvent(event: HolyEvent) {
-    const dbData = mapEventToDB(event);
-    const { error } = await supabase.from('events').insert([dbData]);
-    if (error) {
-      console.error("Erro ao salvar evento:", error);
-      throw error;
+  async saveEvent(event: Omit<HolyEvent, 'id'>) {
+    try {
+      // Normaliza o payload para snake_case e remove IDs inválidos
+      const dbData = mapEventToDB(event);
+      
+      const { data, error } = await supabase
+        .from('events')
+        .insert([dbData])
+        .select();
+
+      if (error) {
+        console.error("Supabase REST Error (Insert):", error);
+        throw error;
+      }
+      return data;
+    } catch (err) {
+      console.error("Erro fatal ao salvar evento:", err);
+      throw err;
     }
   },
 
   async updateEvent(id: string, updates: Partial<HolyEvent>) {
-    const dbData = mapEventToDB(updates);
-    const { error } = await supabase.from('events').update(dbData).eq('id', id);
-    if (error) {
-      console.error("Erro ao atualizar evento:", error);
-      throw error;
+    try {
+      if (!id) throw new Error("ID do evento é obrigatório para atualização.");
+      
+      // Normaliza o payload para snake_case
+      const dbData = mapEventToDB(updates);
+      
+      const { error } = await supabase
+        .from('events')
+        .update(dbData)
+        .eq('id', id);
+
+      if (error) {
+        console.error("Supabase REST Error (Update):", error);
+        throw error;
+      }
+    } catch (err) {
+      console.error("Erro fatal ao atualizar evento:", err);
+      throw err;
     }
   },
 

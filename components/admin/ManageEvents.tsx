@@ -43,8 +43,9 @@ const ManageEvents: React.FC = () => {
     }
     setLoading(true);
     try {
-      const event: HolyEvent = { ...newEvent, id: Date.now().toString() };
-      await dbService.saveEvent(event);
+      // Não enviamos ID manual. O Supabase gera o UUID automaticamente.
+      await dbService.saveEvent(newEvent);
+      
       setNewEvent({ 
         title: '', 
         date: '', 
@@ -58,11 +59,12 @@ const ManageEvents: React.FC = () => {
         whatsappNumber: '',
         whatsappMessage: 'Olá! Gostaria de confirmar minha vaga no evento: '
       });
+      
       setSuccess(true);
       await loadEvents();
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      alert("Erro ao salvar o evento.");
+      alert("Erro ao salvar o evento. Verifique o console para detalhes.");
     } finally {
       setLoading(false);
     }
