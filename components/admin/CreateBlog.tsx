@@ -15,7 +15,6 @@ interface CreateBlogProps {
 const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
   const [activeMode, setActiveMode] = useState<'ia' | 'manual'>('ia');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
   // States da IA
@@ -24,12 +23,12 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
   const [previewPost, setPreviewPost] = useState<any>(null);
   
   // States Manuais
-  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [articleData, setArticleData] = useState({
     title: '',
     content: '',
-    category_id: 'Musculação',
+    excerpt: '',
+    category_id: null, // UUID ou null
     image_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
   });
 
@@ -42,17 +41,16 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     try {
       const result = await aiService.getPreview(iaPrompt, targetCategory);
       if (result.post) {
-        // Normaliza campos para category_id e image_url
-        const normalizedPost = {
+        setPreviewPost({
           title: result.post.title,
           content: result.post.content,
-          category_id: targetCategory,
-          image_url: '', // IA pode não retornar imagem
+          excerpt: result.post.excerpt,
+          category_id: null, // IA não sabe o UUID das categorias locais
+          image_url: '',
           published_at: null
-        };
-        setPreviewPost(normalizedPost);
+        });
       } else {
-        throw new Error("O n8n retornou sucesso mas o post está vazio.");
+        throw new Error("Resposta da IA inválida.");
       }
     } catch (error: any) {
       setErrorMsg(error.message);
@@ -64,15 +62,9 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
   const handleConfirmSaveIA = async () => {
     if (!previewPost) return;
     setLoading(true);
-    setErrorMsg('');
-    
     try {
       await dbService.saveBlog(previewPost);
-      setSuccess(true);
-      setTimeout(() => {
-        setSuccess(false);
-        onSuccess();
-      }, 2000);
+      onSuccess();
     } catch (error: any) {
       setErrorMsg(error.message);
     } finally {
@@ -91,11 +83,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
         ...articleData, 
         published_at: publish ? new Date().toISOString() : null 
       });
-      setSuccess(true);
-      setTimeout(() => {
-        setSuccess(false);
-        onSuccess();
-      }, 2000);
+      onSuccess();
     } catch (error) {
       setErrorMsg("Erro ao salvar artigo.");
     } finally {
@@ -106,11 +94,9 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
     const reader = new FileReader();
     reader.onloadend = () => {
       setArticleData(prev => ({ ...prev, image_url: reader.result as string }));
-      setUploading(false);
     };
     reader.readAsDataURL(file);
   };
@@ -142,7 +128,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
             {!previewPost ? (
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Categoria</label>
+                  <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Contexto</label>
                   <select 
                     value={targetCategory} 
                     onChange={e => setTargetCategory(e.target.value)}
@@ -151,17 +137,16 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                     <option>Musculação</option>
                     <option>Nutrição</option>
                     <option>Espiritualidade</option>
-                    <option>Lifestyle</option>
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Tema / Briefing</label>
+                  <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Tema</label>
                   <textarea
                     value={iaPrompt}
                     onChange={(e) => setIaPrompt(e.target.value)}
                     disabled={loading}
-                    placeholder="Ex: 5 motivos para treinar de manhã..."
+                    placeholder="Ex: Como manter a disciplina..."
                     className="w-full bg-black border border-white/10 rounded-3xl p-8 outline-none focus:border-[#cfec0f] text-lg min-h-[200px] resize-none leading-relaxed transition-all"
                   />
                 </div>
@@ -169,45 +154,34 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                 <button
                   onClick={handleGetPreview}
                   disabled={loading || !iaPrompt}
-                  className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-[#cfec0f]/20"
+                  className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] shadow-xl shadow-[#cfec0f]/20"
                 >
                   {loading ? <RefreshCw className="animate-spin" size={20} /> : <Zap size={20} />}
-                  {loading ? "CONECTANDO AO N8N..." : "GERAR CONTEÚDO"}
+                  GERAR CONTEÚDO
                 </button>
               </div>
             ) : (
               <div className="space-y-6 animate-in slide-in-from-bottom-4">
-                <div className="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-4">
-                  <div className="flex items-center gap-2 text-[#cfec0f]">
-                    <ShieldCheck size={16} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Pipeline Validado</span>
-                  </div>
-                  <p className="text-zinc-400 text-xs">O artigo será salvo como <strong>Rascunho</strong> no Supabase.</p>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <button
-                    onClick={handleConfirmSaveIA}
-                    disabled={loading}
-                    className="w-full bg-green-500 text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-green-500/20"
-                  >
-                    {loading ? <Loader2 className="animate-spin" /> : <Send size={20} />}
-                    SALVAR NO BANCO
-                  </button>
-                  
-                  <button
-                    onClick={() => setPreviewPost(null)}
-                    className="w-full bg-zinc-800 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-4 hover:bg-zinc-700 transition-all text-[10px] uppercase tracking-widest"
-                  >
-                    <ArrowLeft size={16} /> REFAZER
-                  </button>
-                </div>
+                <button
+                  onClick={handleConfirmSaveIA}
+                  disabled={loading}
+                  className="w-full bg-green-500 text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] shadow-xl shadow-green-500/20"
+                >
+                  {loading ? <Loader2 className="animate-spin" /> : <Send size={20} />}
+                  SALVAR RASCUNHO
+                </button>
+                <button
+                  onClick={() => setPreviewPost(null)}
+                  className="w-full bg-zinc-800 text-white font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest"
+                >
+                  REFAZER
+                </button>
               </div>
             )}
 
             {errorMsg && (
-              <div className="p-5 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-500 animate-in shake">
-                <AlertCircle size={16} className="shrink-0" />
+              <div className="p-5 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-500">
+                <AlertCircle size={16} />
                 <p className="text-[10px] font-black uppercase tracking-widest">{errorMsg}</p>
               </div>
             )}
@@ -215,23 +189,14 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
 
           <div className="bg-zinc-900/5 border border-dashed border-white/10 rounded-[40px] p-10 overflow-y-auto max-h-[80vh] custom-scrollbar">
             {previewPost ? (
-              <div className="animate-in fade-in slide-in-from-right-10 duration-700 space-y-8">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="p-3 bg-neon/10 text-neon rounded-xl"><Eye size={20} /></div>
-                  <h3 className="text-xl font-black italic uppercase text-white">Preview Digital</h3>
-                </div>
-                <div className="space-y-2">
-                  <span className="text-[9px] font-black text-neon uppercase tracking-widest">Título</span>
-                  <h1 className="text-3xl font-black italic leading-tight text-white">{previewPost.title}</h1>
-                </div>
-                <div className="p-8 bg-black rounded-3xl border border-white/5 prose prose-invert prose-sm max-w-none text-zinc-400">
-                   <div dangerouslySetInnerHTML={{ __html: previewPost.content }} />
-                </div>
+              <div className="animate-in fade-in duration-700 space-y-8">
+                <h1 className="text-3xl font-black italic text-white">{previewPost.title}</h1>
+                <div className="prose prose-invert prose-sm" dangerouslySetInnerHTML={{ __html: previewPost.content }} />
               </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
                 <FileText size={48} className="mb-4" />
-                <p className="text-[10px] font-black uppercase tracking-widest">O Templo Digital aguarda seu briefing</p>
+                <p className="text-[10px] font-black uppercase tracking-widest">Aguardando IA...</p>
               </div>
             )}
           </div>
@@ -239,65 +204,32 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       ) : (
         <div className="grid lg:grid-cols-3 gap-10 animate-in fade-in duration-700">
           <div className="lg:col-span-2 space-y-8">
-            <div className="space-y-2">
-               <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-4">Título do Post</label>
-               <input 
-                value={articleData.title} 
-                onChange={e => setArticleData({...articleData, title: e.target.value})} 
-                className="w-full bg-zinc-900/20 border border-white/5 rounded-2xl px-8 py-6 text-2xl font-black italic outline-none focus:border-[#cfec0f]"
-              />
-            </div>
-            <div className="space-y-2">
-               <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-4">Conteúdo (HTML)</label>
-               <textarea 
-                value={articleData.content} 
-                onChange={e => setArticleData({...articleData, content: e.target.value})} 
-                className="w-full bg-zinc-900/20 border border-white/5 rounded-3xl p-10 text-base leading-loose min-h-[500px] outline-none focus:border-[#cfec0f]"
-              />
-            </div>
+            <input 
+              value={articleData.title} 
+              onChange={e => setArticleData({...articleData, title: e.target.value})} 
+              placeholder="Título do Artigo"
+              className="w-full bg-zinc-900/20 border border-white/5 rounded-2xl px-8 py-6 text-2xl font-black italic outline-none focus:border-[#cfec0f]"
+            />
+            <textarea 
+              value={articleData.content} 
+              onChange={e => setArticleData({...articleData, content: e.target.value})} 
+              placeholder="Conteúdo em HTML..."
+              className="w-full bg-zinc-900/20 border border-white/5 rounded-3xl p-10 text-base leading-loose min-h-[500px] outline-none focus:border-[#cfec0f]"
+            />
           </div>
 
           <div className="space-y-8">
             <div className="bg-zinc-900/20 p-8 rounded-[40px] border border-white/5 space-y-6">
-              <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Capa</label>
-                <div 
-                  className="aspect-video bg-black border border-white/10 rounded-3xl overflow-hidden cursor-pointer relative group flex items-center justify-center"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <img src={articleData.image_url} className="w-full h-full object-cover group-hover:opacity-40 transition-all" alt="Preview" />
-                  <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
-                </div>
+              <div 
+                className="aspect-video bg-black border border-white/10 rounded-3xl overflow-hidden cursor-pointer relative group flex items-center justify-center"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <img src={articleData.image_url} className="w-full h-full object-cover group-hover:opacity-40 transition-all" alt="Capa" />
+                <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Categoria</label>
-                <select 
-                  value={articleData.category_id}
-                  onChange={e => setArticleData({...articleData, category_id: e.target.value})}
-                  className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-neon text-sm"
-                >
-                  <option>Musculação</option>
-                  <option>Nutrição</option>
-                  <option>Espiritualidade</option>
-                  <option>Lifestyle</option>
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <button 
-                  onClick={() => publishArticleManual(true)}
-                  className="w-full bg-[#cfec0f] text-black font-black py-5 rounded-2xl text-[10px] uppercase tracking-widest hover:scale-[1.02] shadow-xl"
-                >
-                  LANÇAR AGORA
-                </button>
-                <button 
-                  onClick={() => publishArticleManual(false)}
-                  className="w-full bg-white/5 text-zinc-500 font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest border border-white/5 hover:text-white transition-all"
-                >
-                  SALVAR RASCUNHO
-                </button>
-              </div>
+              <button onClick={() => publishArticleManual(true)} className="w-full bg-[#cfec0f] text-black font-black py-5 rounded-2xl text-[10px] uppercase tracking-widest shadow-xl">LANÇAR AGORA</button>
+              <button onClick={() => publishArticleManual(false)} className="w-full bg-white/5 text-zinc-500 font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest border border-white/5">SALVAR RASCUNHO</button>
             </div>
           </div>
         </div>

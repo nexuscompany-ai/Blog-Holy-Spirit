@@ -8,8 +8,9 @@ export interface BlogPost {
   id: string;
   title: string;
   content: string;
-  category_id: string; // Corrigido de category
-  image_url: string;   // Corrigido de image
+  excerpt: string;
+  category: string; // O dbService já entrega o nome via Join
+  image_url: string;
   created_at: string;
   published_at?: string | null;
 }
@@ -27,24 +28,19 @@ const BlogSection: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const { data: publishedPostsData } = await supabase
-          .from('posts')
-          .select('*')
-          .not('published_at', 'is', null)
-          .order('published_at', { ascending: false });
-
-        const [allEvents, currentSettings] = await Promise.all([
+        const [allPosts, allEvents, currentSettings] = await Promise.all([
+          dbService.getBlogs(),
           dbService.getEvents().catch(() => []),
           dbService.getSettings()
         ]);
 
         const now = new Date();
-        const finalPosts = (publishedPostsData || []).filter((p: any) => {
+        const publishedPosts = allPosts.filter((p: any) => {
           const pDate = p.published_at;
           return pDate ? new Date(pDate) <= now : false;
         });
 
-        setPosts(finalPosts);
+        setPosts(publishedPosts);
         setEvents(allEvents.filter((e: any) => e.status === 'active'));
         setSettings(currentSettings);
       } catch (err) {
@@ -78,7 +74,7 @@ const BlogSection: React.FC = () => {
           <article className="space-y-16 animate-in fade-in duration-700">
             <header className="space-y-8 text-center">
               <span className="bg-neon text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">
-                {selectedPost.category_id || 'Geral'}
+                {selectedPost.category || 'Templo'}
               </span>
               <h1 className="text-6xl md:text-8xl font-black uppercase italic tracking-tighter leading-[0.85] text-white">
                 {selectedPost.title}
@@ -120,162 +116,4 @@ const BlogSection: React.FC = () => {
     <section id="blog" className="py-32 bg-black">
       {selectedEvent && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-xl bg-black/80 animate-in fade-in duration-300">
-          <div className="bg-zinc-950 border border-white/10 w-full max-w-3xl rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
-            <div className="relative aspect-video">
-              {selectedEvent.image ? (
-                <img src={selectedEvent.image} className="w-full h-full object-cover" alt={selectedEvent.title} />
-              ) : (
-                <div className="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-700">
-                  <CalendarIcon size={64} />
-                </div>
-              )}
-              <button 
-                onClick={() => setSelectedEvent(null)}
-                className="absolute top-6 right-6 p-3 bg-black/60 text-white rounded-full hover:bg-neon hover:text-black transition-all"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            
-            <div className="p-10 space-y-8 overflow-y-auto">
-              <div>
-                <span className="bg-neon text-black px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{selectedEvent.category}</span>
-                <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white mt-4">{selectedEvent.title}</h2>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6 border-y border-white/5 py-8">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase text-zinc-600 flex items-center gap-2"><Clock size={14} className="text-neon" /> Horário</p>
-                  <p className="text-white font-bold">{new Date(selectedEvent.date).toLocaleDateString('pt-BR')} às {selectedEvent.time}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase text-zinc-600 flex items-center gap-2"><MapPin size={14} className="text-neon" /> Local</p>
-                  <p className="text-white font-bold italic">{selectedEvent.location}</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <p className="text-zinc-400 text-lg leading-relaxed whitespace-pre-wrap">{selectedEvent.description}</p>
-              </div>
-
-              {selectedEvent.whatsappEnabled && (
-                <a 
-                  href={`https://wa.me/${selectedEvent.whatsappNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(selectedEvent.whatsappMessage || '')}`}
-                  target="_blank"
-                  className="btn-primary w-full py-6 text-sm"
-                >
-                  <MessageSquare size={18} /> Garantir minha vaga no WhatsApp
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-12">
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 text-neon font-black text-[11px] uppercase tracking-[0.4em]">
-              <Sparkles size={16} /> Conteúdo & Comunidade
-            </div>
-            <h2 className="text-5xl md:text-8xl font-black uppercase italic leading-[0.85] tracking-tighter text-white">
-              O <span className="text-neon neon-glow">TEMPLO</span> <br /> EM FOCO
-            </h2>
-          </div>
-
-          <div className="flex p-1.5 bg-zinc-900/50 rounded-2xl border border-white/5">
-            <button 
-              onClick={() => setActiveTab('articles')}
-              className={`px-10 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'articles' ? 'bg-neon text-black shadow-xl shadow-neon/20' : 'text-zinc-500 hover:text-white'}`}
-            >
-              Blog
-            </button>
-            <button 
-              onClick={() => setActiveTab('events')}
-              className={`px-10 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'events' ? 'bg-neon text-black shadow-xl shadow-neon/20' : 'text-zinc-500 hover:text-white'}`}
-            >
-              Eventos ({events.length})
-            </button>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="py-32 flex justify-center">
-            <div className="w-12 h-12 border-4 border-neon border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : activeTab === 'articles' ? (
-          <div className="grid md:grid-cols-2 gap-12 animate-in fade-in duration-500">
-            {posts.map((post) => (
-              <BlogCard 
-                key={post.id}
-                image={post.image_url} // Mapeado para image_url
-                category={post.category_id || 'Geral'} // Mapeado para category_id
-                title={post.title}
-                desc={post.content.replace(/<[^>]*>/g, '').substring(0, 160) + '...'}
-                date={new Date(post.published_at!).toLocaleDateString('pt-BR')}
-                readTime="5 min"
-                author={{ name: "Holy Spirit Editorial", avatar: "/icon.svg" }}
-                onClick={() => setSelectedPost(post)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-3 gap-8 animate-in fade-in duration-500">
-            {events.map((event) => (
-              <div 
-                key={event.id} 
-                onClick={() => setSelectedEvent(event)}
-                className="glass-card rounded-[40px] overflow-hidden group cursor-pointer flex flex-col h-full"
-              >
-                <div className="aspect-[4/3] relative overflow-hidden bg-zinc-900">
-                  {event.image ? (
-                    <img 
-                      src={event.image} 
-                      alt={event.title}
-                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-110"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                      <CalendarIcon size={48} />
-                    </div>
-                  )}
-                  <div className="absolute top-6 left-6 flex gap-2">
-                     <span className="bg-neon text-black px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest">
-                        {event.category}
-                      </span>
-                  </div>
-                </div>
-                <div className="p-10 space-y-6 flex-grow flex flex-col">
-                  <h3 className="text-2xl font-black italic uppercase tracking-tighter group-hover:text-neon transition-colors text-white">
-                    {event.title}
-                  </h3>
-                  <div className="space-y-3 text-zinc-500 text-[11px] font-black uppercase tracking-widest">
-                    <div className="flex items-center gap-3"><CalendarIcon size={16} className="text-neon" /> {new Date(event.date).toLocaleDateString('pt-BR')}</div>
-                    <div className="flex items-center gap-3"><MapPin size={16} className="text-neon" /> {event.location}</div>
-                  </div>
-                  
-                  <div className="mt-auto pt-6">
-                    {event.whatsappEnabled ? (
-                      <button 
-                        className="btn-primary w-full py-4 text-[10px]"
-                        onClick={(e) => { e.stopPropagation(); setSelectedEvent(event); }}
-                      >
-                        Garantir Vaga
-                      </button>
-                    ) : (
-                      <button className="w-full py-4 border border-white/5 rounded-xl text-[9px] font-black uppercase text-zinc-600 group-hover:text-white transition-colors flex items-center justify-center gap-2">
-                        <Info size={14} /> Ver Informações
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-};
-
-export default BlogSection;
+          <div className="bg-zinc-950 border border-white/10 w-full max-w-3xl rounded-[40px] overflow-hidden shadow-2xl animate-

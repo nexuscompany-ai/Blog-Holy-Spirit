@@ -53,8 +53,48 @@ export interface DashboardMetrics {
 }
 
 /**
- * MAPPERS PARA EVENTOS (camelCase <-> snake_case)
+ * RESOLUÇÃO DE CATEGORIA
+ * Converte nome de categoria em UUID do banco para evitar erro 22P02.
  */
+async function resolveCategoryId(categoryName: string | undefined): Promise<string | null> {
+  if (!categoryName) return null;
+  
+  // Se já for um UUID, retorna ele mesmo
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(categoryName);
+  if (isUUID) return categoryName;
+
+  const { data, error } = await supabase
+    .from('categories')
+    .select('id')
+    .ilike('name', categoryName)
+    .maybeSingle();
+
+  if (error || !data) {
+    // Se não encontrar, tenta buscar a categoria padrão 'Geral' ou retorna null
+    const { data: fallback } = await supabase.from('categories').select('id').ilike('name', 'Geral').maybeSingle();
+    return fallback?.id || null;
+  }
+  return data.id;
+}
+
+/**
+ * SANEAMENTO DE PAYLOAD PARA POSTS
+ * Filtra apenas colunas existentes e mapeia nomes de campos do frontend.
+ */
+async function sanitizePostPayload(input: any) {
+  const categoryId = await resolveCategoryId(input.category_id || input.category);
+  
+  return {
+    title: input.title,
+    content: input.content,
+    excerpt: input.excerpt || (input.content ? input.content.replace(/<[^>]*>/g, '').substring(0, 160) : ''),
+    image_url: input.image_url || input.image || input.imageUrl || '',
+    category_id: categoryId, // UUID ou null
+    published_at: input.published_at || null,
+    updated_at: new Date().toISOString()
+  };
+}
+
 const mapEventToDB = (event: Partial<HolyEvent>) => {
   const mapped: any = {};
   const directFields = ['title', 'date', 'time', 'location', 'description', 'category', 'status', 'image'];
@@ -159,31 +199,31 @@ export const dbService = {
 
   async getBlogs() {
     try {
+      // Join com a tabela categories para obter o nome para o frontend
       const { data, error } = await supabase
         .from('posts')
-        .select('*')
+        .select('*, categories(name)')
         .order('created_at', { ascending: false });
       
       if (error) return [];
-      return data || [];
+      
+      // Mapeia para que o frontend veja 'category' como o nome
+      return (data || []).map(post => ({
+        ...post,
+        category: post.categories?.name || 'Geral'
+      }));
     } catch {
       return [];
     }
   },
 
   async saveBlog(post: any) {
-    // Payload limpo e compatível com o schema real do Supabase
-    const payload = {
-      title: post.title,
-      content: post.content,
-      category_id: post.category_id || post.category || null,
-      image_url: post.image_url || post.image || '',
-      published_at: post.published_at || null
-    };
+    const payload = await sanitizePostPayload(post);
+    payload.created_at = new Date().toISOString();
     
     const { error } = await supabase.from('posts').insert([payload]);
     if (error) {
-      console.error("Erro ao salvar post:", error);
+      console.error("Erro ao salvar post (Supabase):", error);
       throw error;
     }
   },
@@ -191,16 +231,7 @@ export const dbService = {
   async updateBlog(id: string, updates: any) {
     if (!id) throw new Error("ID do post obrigatório.");
     
-    // Payload estritamente compatível: title, content, image_url, category_id
-    const payload: any = {};
-    if (updates.title !== undefined) payload.title = updates.title;
-    if (updates.content !== undefined) payload.content = updates.content;
-    if (updates.image_url !== undefined) payload.image_url = updates.image_url;
-    // Fallback caso venha como category
-    if (updates.category_id !== undefined) payload.category_id = updates.category_id;
-    else if (updates.category !== undefined) payload.category_id = updates.category;
-    
-    if (updates.published_at !== undefined) payload.published_at = updates.published_at;
+    const payload = await sanitizePostPayload(updates);
 
     const { error } = await supabase
       .from('posts')
@@ -208,7 +239,7 @@ export const dbService = {
       .eq('id', id);
 
     if (error) {
-      console.error("Erro na atualização do blog (PGRST204/400 Fix):", error);
+      console.error("Erro na atualização do blog (Supabase):", error);
       throw error;
     }
   },
@@ -274,5 +305,11 @@ export const dbService = {
   async saveAutomationSettings(settings: AutomationSettings) {
     const { error } = await supabase.from('automation_settings').upsert({ ...settings, id: 'config' });
     if (error) throw error;
+  },
+
+  async getCategories() {
+    const { data, error } = await supabase.from('categories').select('*').order('name');
+    if (error) return [];
+    return data || [];
   }
 };
