@@ -17,14 +17,14 @@ interface BlogCardProps {
 }
 
 const BlogCard: React.FC<BlogCardProps> = ({ image, category, title, desc, author, date, readTime, onClick }) => {
-  const hasImage = image && image.length > 10;
+  const hasImage = image && image.length > 20; // Verifica se há uma URL de imagem válida
 
   return (
     <div 
       onClick={onClick}
-      className={`group cursor-pointer glass-card rounded-[40px] overflow-hidden flex flex-col h-full transition-all duration-500 hover:translate-y-[-8px] ${!hasImage ? 'bg-zinc-900/40 border-l-4 border-l-neon' : ''}`}
+      className={`group cursor-pointer glass-card rounded-[40px] overflow-hidden flex flex-col h-full transition-all duration-500 hover:translate-y-[-8px] ${!hasImage ? 'bg-zinc-900/40 border-l-4 border-l-neon shadow-2xl' : ''}`}
     >
-      {hasImage ? (
+      {hasImage && (
         <div className="relative aspect-[16/10] overflow-hidden">
           <img
             src={image}
@@ -37,27 +37,29 @@ const BlogCard: React.FC<BlogCardProps> = ({ image, category, title, desc, autho
             </span>
           </div>
         </div>
-      ) : (
+      )}
+
+      {!hasImage && (
         <div className="px-10 pt-10 flex items-center justify-between">
           <span className="bg-neon/10 text-neon text-[9px] font-black px-4 py-1.5 uppercase rounded-full border border-neon/20">
             {category}
           </span>
-          <FileText size={18} className="text-zinc-800" />
+          <FileText size={18} className="text-zinc-700" />
         </div>
       )}
       
-      <div className="p-10 flex flex-col flex-grow space-y-6">
+      <div className={`p-10 flex flex-col flex-grow space-y-6 ${!hasImage ? 'justify-center' : ''}`}>
         <div className="flex items-center gap-4 text-zinc-500 text-[10px] font-black uppercase tracking-widest">
           <div className="flex items-center gap-2"><Clock size={12} className="text-neon" /> {readTime} de leitura</div>
           <div className="w-1 h-1 bg-zinc-800 rounded-full"></div>
           <div>{date}</div>
         </div>
 
-        <h3 className={`font-black uppercase italic leading-none tracking-tighter group-hover:text-neon transition-colors ${hasImage ? 'text-3xl' : 'text-4xl'}`}>
+        <h3 className={`font-black uppercase italic leading-none tracking-tighter group-hover:text-neon transition-colors ${hasImage ? 'text-3xl' : 'text-5xl'}`}>
           {title}
         </h3>
         
-        <p className="text-zinc-500 text-sm leading-relaxed line-clamp-3">
+        <p className={`text-zinc-500 text-sm leading-relaxed line-clamp-3 ${!hasImage ? 'text-base' : ''}`}>
           {desc}
         </p>
         

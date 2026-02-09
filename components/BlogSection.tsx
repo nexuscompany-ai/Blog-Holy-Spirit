@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Calendar as CalendarIcon, MapPin, ArrowLeft, Sparkles, BookOpen, X, Clock, Info } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, ArrowLeft, Sparkles, BookOpen, X, Clock, Info, MessageSquare } from 'lucide-react';
 import { dbService, HolyEvent, HolySettings, supabase } from '../db';
 import BlogCard from './BlogCard';
 
@@ -90,14 +90,15 @@ const BlogSection: React.FC = () => {
               </p>
             </header>
 
-            {selectedPost.image && selectedPost.image.length > 10 && (
+            {selectedPost.image && selectedPost.image.length > 20 && (
               <div className="aspect-video rounded-[60px] overflow-hidden border border-white/5 shadow-2xl relative">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
                 <img src={selectedPost.image} alt={selectedPost.title} className="w-full h-full object-cover" />
               </div>
             )}
 
-            <div className="prose prose-invert max-w-none text-zinc-400 text-xl leading-loose space-y-10 font-medium pb-20">
+            {/* CORREÇÃO: Renderização de HTML interpretada */}
+            <div className="prose prose-invert max-w-none text-zinc-400 text-xl leading-loose space-y-10 font-medium pb-20 blog-content-view">
               <div dangerouslySetInnerHTML={{ __html: selectedPost.content }} />
             </div>
 
@@ -123,52 +124,54 @@ const BlogSection: React.FC = () => {
 
   return (
     <section id="blog" className="py-32 bg-black">
-      {/* Event Details Modal */}
+      {/* MODAL DE DETALHES DO EVENTO */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-xl bg-black/60 animate-in fade-in duration-300">
-          <div className="bg-zinc-950 border border-white/10 w-full max-w-3xl rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-xl bg-black/80 animate-in fade-in duration-300">
+          <div className="bg-zinc-950 border border-white/10 w-full max-w-3xl rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
             <div className="relative aspect-video">
-              <img src={selectedEvent.image} className="w-full h-full object-cover" alt={selectedEvent.title} />
+              {selectedEvent.image ? (
+                <img src={selectedEvent.image} className="w-full h-full object-cover" alt={selectedEvent.title} />
+              ) : (
+                <div className="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-700">
+                  <CalendarIcon size={64} />
+                </div>
+              )}
               <button 
                 onClick={() => setSelectedEvent(null)}
-                className="absolute top-6 right-6 p-3 bg-black/50 text-white rounded-full backdrop-blur-md hover:bg-neon hover:text-black transition-all"
+                className="absolute top-6 right-6 p-3 bg-black/60 text-white rounded-full hover:bg-neon hover:text-black transition-all"
               >
                 <X size={24} />
               </button>
             </div>
-            <div className="p-10 space-y-8">
-              <div className="space-y-4">
-                <span className="bg-neon text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">{selectedEvent.category}</span>
-                <h2 className="text-4xl md:text-5xl font-black uppercase italic italic tracking-tighter text-white">{selectedEvent.title}</h2>
+            
+            <div className="p-10 space-y-8 overflow-y-auto">
+              <div>
+                <span className="bg-neon text-black px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{selectedEvent.category}</span>
+                <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white mt-4">{selectedEvent.title}</h2>
               </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6 py-6 border-y border-white/5">
+
+              <div className="grid grid-cols-2 gap-6 border-y border-white/5 py-8">
                 <div className="space-y-1">
-                  <p className="text-zinc-600 text-[9px] font-black uppercase tracking-widest flex items-center gap-2"><CalendarIcon size={12}/> Data</p>
-                  <p className="text-white font-bold">{new Date(selectedEvent.date).toLocaleDateString('pt-BR')}</p>
+                  <p className="text-[10px] font-black uppercase text-zinc-600 flex items-center gap-2"><Clock size={14} className="text-neon" /> Horário</p>
+                  <p className="text-white font-bold">{new Date(selectedEvent.date).toLocaleDateString('pt-BR')} às {selectedEvent.time}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-zinc-600 text-[9px] font-black uppercase tracking-widest flex items-center gap-2"><Clock size={12}/> Horário</p>
-                  <p className="text-white font-bold">{selectedEvent.time}</p>
-                </div>
-                <div className="col-span-2 md:col-span-1 space-y-1">
-                  <p className="text-zinc-600 text-[9px] font-black uppercase tracking-widest flex items-center gap-2"><MapPin size={12}/> Local</p>
+                  <p className="text-[10px] font-black uppercase text-zinc-600 flex items-center gap-2"><MapPin size={14} className="text-neon" /> Local</p>
                   <p className="text-white font-bold italic">{selectedEvent.location}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-neon">Sobre este momento</h4>
-                <p className="text-zinc-400 leading-loose text-lg">{selectedEvent.description || 'Nenhuma descrição adicional informada para este evento.'}</p>
+                <p className="text-zinc-400 text-lg leading-relaxed whitespace-pre-wrap">{selectedEvent.description}</p>
               </div>
 
               {selectedEvent.whatsappEnabled && (
                 <a 
-                  href={`https://wa.me/${selectedEvent.whatsappNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(selectedEvent.whatsappMessage || '')}${encodeURIComponent(selectedEvent.title)}`}
+                  href={`https://wa.me/${selectedEvent.whatsappNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(selectedEvent.whatsappMessage || '')}`}
                   target="_blank"
                   className="btn-primary w-full py-6 text-sm"
                 >
-                  Confirmar presença no WhatsApp
+                  <MessageSquare size={18} /> Garantir minha vaga no WhatsApp
                 </a>
               )}
             </div>
@@ -222,70 +225,59 @@ const BlogSection: React.FC = () => {
                 onClick={() => setSelectedPost(post)}
               />
             ))}
-            {posts.length === 0 && (
-              <div className="col-span-full py-32 text-center glass-card rounded-[40px] border-dashed">
-                 <BookOpen size={64} className="mx-auto text-zinc-800 mb-8" />
-                 <p className="text-zinc-600 font-black uppercase text-sm tracking-[0.4em]">Aguardando as primeiras palavras do Templo...</p>
-              </div>
-            )}
           </div>
         ) : (
           <div className="grid md:grid-cols-3 gap-8 animate-in fade-in duration-500">
-            {events.map((event) => {
-              const waLink = event.whatsappEnabled 
-                ? `https://wa.me/${event.whatsappNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(event.whatsappMessage || '')}${encodeURIComponent(event.title)}`
-                : null;
-
-              return (
-                <div 
-                  key={event.id} 
-                  onClick={() => setSelectedEvent(event)}
-                  className="glass-card rounded-[40px] overflow-hidden group cursor-pointer"
-                >
-                  <div className="aspect-[4/3] relative overflow-hidden">
+            {events.map((event) => (
+              <div 
+                key={event.id} 
+                onClick={() => setSelectedEvent(event)}
+                className="glass-card rounded-[40px] overflow-hidden group cursor-pointer flex flex-col h-full"
+              >
+                <div className="aspect-[4/3] relative overflow-hidden bg-zinc-900">
+                  {event.image ? (
                     <img 
                       src={event.image} 
                       alt={event.title}
                       className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-110"
                     />
-                    <div className="absolute top-6 left-6 flex gap-2">
-                       <span className="bg-neon text-black px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest">
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                      <CalendarIcon size={48} />
+                    </div>
+                  )}
+                  <div className="absolute top-6 left-6 flex gap-2">
+                     <span className="bg-neon text-black px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest">
                         {event.category}
                       </span>
-                    </div>
                   </div>
-                  <div className="p-10 space-y-6">
-                    <h3 className="text-2xl font-black italic uppercase tracking-tighter group-hover:text-neon transition-colors text-white">
-                      {event.title}
-                    </h3>
-                    <div className="space-y-3 text-zinc-500 text-[11px] font-black uppercase tracking-widest">
-                      <div className="flex items-center gap-3"><CalendarIcon size={16} className="text-neon" /> {new Date(event.date).toLocaleDateString('pt-BR')}</div>
-                      <div className="flex items-center gap-3"><MapPin size={16} className="text-neon" /> {event.location}</div>
-                    </div>
-                    {waLink ? (
-                      <a 
-                        href={waLink}
-                        target="_blank"
-                        onClick={(e) => e.stopPropagation()}
-                        className="btn-primary w-full py-4 text-xs"
+                </div>
+                <div className="p-10 space-y-6 flex-grow flex flex-col">
+                  <h3 className="text-2xl font-black italic uppercase tracking-tighter group-hover:text-neon transition-colors text-white">
+                    {event.title}
+                  </h3>
+                  <div className="space-y-3 text-zinc-500 text-[11px] font-black uppercase tracking-widest">
+                    <div className="flex items-center gap-3"><CalendarIcon size={16} className="text-neon" /> {new Date(event.date).toLocaleDateString('pt-BR')}</div>
+                    <div className="flex items-center gap-3"><MapPin size={16} className="text-neon" /> {event.location}</div>
+                  </div>
+                  
+                  <div className="mt-auto pt-6">
+                    {event.whatsappEnabled ? (
+                      <button 
+                        className="btn-primary w-full py-4 text-[10px]"
+                        onClick={(e) => { e.stopPropagation(); setSelectedEvent(event); }}
                       >
-                        Confirmar via WhatsApp
-                      </a>
+                        Garantir Vaga
+                      </button>
                     ) : (
-                      <button className="w-full py-4 text-[10px] font-black uppercase tracking-widest border border-white/10 rounded-xl text-zinc-500 group-hover:text-white group-hover:border-white/30 transition-all flex items-center justify-center gap-2">
-                         <Info size={14} /> Ver Detalhes
+                      <button className="w-full py-4 border border-white/5 rounded-xl text-[9px] font-black uppercase text-zinc-600 group-hover:text-white transition-colors flex items-center justify-center gap-2">
+                        <Info size={14} /> Ver Informações
                       </button>
                     )}
                   </div>
                 </div>
-              );
-            })}
-            {events.length === 0 && (
-              <div className="col-span-full py-32 text-center glass-card rounded-[40px] border-dashed">
-                 <CalendarIcon size={64} className="mx-auto text-zinc-800 mb-8" />
-                 <p className="text-zinc-600 font-black uppercase text-sm tracking-[0.4em]">Nenhum evento agendado no momento.</p>
               </div>
-            )}
+            ))}
           </div>
         )}
       </div>
