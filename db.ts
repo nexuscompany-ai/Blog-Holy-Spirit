@@ -270,7 +270,6 @@ async updateBlog(id: string, updates: any) {
       console.error("Erro na atualização do blog:", error);
       throw error;
     }
-  },
 
   async deleteBlog(id: string) {
     const { error } = await supabase.from('posts').delete().eq('id', id);
