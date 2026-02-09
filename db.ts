@@ -211,9 +211,16 @@ export const dbService = {
     }
   },
 
-  async updateBlog(id: string, updates: any) {
-    if (!id) throw new Error("ID do post obrigatório.");
-    const now = new Date().toISOString();
+async updateBlog(id: string, updates: any) {
+  console.log('UPDATES RECEBIDOS:', updates);
+
+  if (!id) throw new Error("ID do post obrigatório.");
+
+  const payload: any = { ...updates };
+
+  // resto do código...
+}
+
     
     // Filtra campos para não enviar dados inválidos
     const payload: any = {
