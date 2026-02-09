@@ -1,9 +1,9 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Sparkles, Loader2, PenTool, Zap, BrainCircuit, 
+  Sparkles, Loader2, PenTool, Zap, 
   ShieldCheck, AlertCircle, RefreshCw, 
-  FileText, Send, ArrowLeft, Eye
+  FileText, Send, CheckCircle2
 } from 'lucide-react';
 import { aiService } from '../../services/ai.service';
 import { dbService } from '../../db';
@@ -15,12 +15,13 @@ interface CreateBlogProps {
 const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
   const [activeMode, setActiveMode] = useState<'ia' | 'manual'>('ia');
   const [loading, setLoading] = useState(false);
+  const [creationSuccess, setCreationSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [loadingStep, setLoadingStep] = useState(0);
   
   // States do Assistente
   const [iaPrompt, setIaPrompt] = useState('');
   const [targetCategory, setTargetCategory] = useState('Musculação');
-  const [previewPost, setPreviewPost] = useState<any>(null);
   
   // States Manuais
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,42 +33,57 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     image_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
   });
 
-  const handleGetPreview = async () => {
+  const loadingMessages = [
+    "Iniciando inteligência editorial...",
+    "Pesquisando referências de alta performance...",
+    "Estruturando tópicos e SEO...",
+    "Finalizando redação do templo...",
+    "Quase pronto! Organizando metadados..."
+  ];
+
+  useEffect(() => {
+    let interval: any;
+    if (loading) {
+      interval = setInterval(() => {
+        setLoadingStep(prev => (prev + 1) % loadingMessages.length);
+      }, 5000);
+    } else {
+      setLoadingStep(0);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  const handleGenerateAndSave = async () => {
     if (!iaPrompt) return;
     setLoading(true);
     setErrorMsg('');
-    setPreviewPost(null);
     
     try {
+      // 1. Solicita a geração ao n8n (sem timeout no fetch)
       const result = await aiService.getPreview(iaPrompt, targetCategory);
+      
       if (result.post) {
-        setPreviewPost({
+        // 2. Salva automaticamente no Banco de Dados
+        await dbService.saveBlog({
           title: result.post.title,
           content: result.post.content,
           excerpt: result.post.excerpt,
-          category_id: null,
-          image_url: '',
-          published_at: null
+          category: targetCategory,
+          source: 'ai',
+          published_at: null // Salva como rascunho por padrão
         });
+
+        // 3. Feedback de sucesso e redirecionamento
+        setCreationSuccess(true);
+        setTimeout(() => {
+          onSuccess(); // Redireciona para "Meus Artigos"
+        }, 2500);
       } else {
-        throw new Error("Não foi possível gerar o conteúdo no momento.");
+        throw new Error("O servidor de inteligência não retornou um conteúdo válido.");
       }
     } catch (error: any) {
-      setErrorMsg(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleConfirmSaveIA = async () => {
-    if (!previewPost) return;
-    setLoading(true);
-    try {
-      await dbService.saveBlog(previewPost);
-      onSuccess();
-    } catch (error: any) {
-      setErrorMsg(error.message);
-    } finally {
+      console.error("Erro na geração/salvamento:", error);
+      setErrorMsg(error.message || "Falha na comunicação com o Hub Editorial.");
       setLoading(false);
     }
   };
@@ -86,7 +102,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       onSuccess();
     } catch (error) {
       setErrorMsg("Erro ao salvar artigo no site.");
-    } finally {
       setLoading(false);
     }
   };
@@ -101,91 +116,81 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     reader.readAsDataURL(file);
   };
 
+  if (creationSuccess) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center space-y-8 animate-in fade-in zoom-in duration-500">
+        <div className="w-24 h-24 bg-neon rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(207,236,15,0.4)]">
+          <CheckCircle2 size={48} className="text-black" />
+        </div>
+        <div className="space-y-4">
+          <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">Blog Gerado com Sucesso!</h2>
+          <p className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest">Sincronizando com seu feed e redirecionando...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto pb-20">
       <div className="flex gap-4 mb-12 bg-zinc-900/40 p-2 rounded-3xl border border-white/5 w-fit">
         <button 
-          onClick={() => { setActiveMode('ia'); setErrorMsg(''); setPreviewPost(null); }}
-          className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeMode === 'ia' ? 'bg-[#cfec0f] text-black' : 'text-gray-500 hover:text-white'}`}
+          onClick={() => { setActiveMode('ia'); setErrorMsg(''); }}
+          disabled={loading}
+          className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeMode === 'ia' ? 'bg-[#cfec0f] text-black' : 'text-gray-500 hover:text-white disabled:opacity-30'}`}
         >
           <Sparkles size={14} /> Assistente de Redação
         </button>
         <button 
           onClick={() => { setActiveMode('manual'); setErrorMsg(''); }}
-          className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeMode === 'manual' ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
+          disabled={loading}
+          className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeMode === 'manual' ? 'bg-white text-black' : 'text-gray-500 hover:text-white disabled:opacity-30'}`}
         >
           <PenTool size={14} /> Escrita Manual
         </button>
       </div>
 
       {activeMode === 'ia' ? (
-        <div className="grid lg:grid-cols-2 gap-12 animate-in fade-in duration-700">
-          <div className="bg-zinc-900/10 p-12 rounded-[40px] border border-white/5 space-y-8 h-fit">
+        <div className="grid lg:grid-cols-5 gap-12 animate-in fade-in duration-700">
+          <div className="lg:col-span-3 bg-zinc-900/10 p-12 rounded-[40px] border border-white/5 space-y-8 h-fit">
             <h2 className="text-4xl font-black uppercase italic tracking-tighter text-[#cfec0f]">
-              {previewPost ? "Conteúdo Preparado" : "Preparar Novo Artigo"}
+              {loading ? "Processando Ideia..." : "Preparar Novo Artigo"}
             </h2>
             
-            {!previewPost ? (
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Qual o foco do artigo?</label>
-                  <select 
-                    value={targetCategory} 
-                    onChange={e => setTargetCategory(e.target.value)}
-                    className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#cfec0f] text-sm"
-                  >
-                    <option>Musculação</option>
-                    <option>Nutrição</option>
-                    <option>Espiritualidade</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Sobre o que deseja falar hoje?</label>
-                  <textarea
-                    value={iaPrompt}
-                    onChange={(e) => setIaPrompt(e.target.value)}
-                    disabled={loading}
-                    placeholder="Ex: Benefícios do treino matinal para a disciplina..."
-                    className="w-full bg-black border border-white/10 rounded-3xl p-8 outline-none focus:border-[#cfec0f] text-lg min-h-[200px] resize-none leading-relaxed transition-all"
-                  />
-                </div>
-
-                <button
-                  onClick={handleGetPreview}
-                  disabled={loading || !iaPrompt}
-                  className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] shadow-xl shadow-[#cfec0f]/20"
-                >
-                  {loading ? <RefreshCw className="animate-spin" size={20} /> : <Zap size={20} />}
-                  {loading ? "PROCESSANDO CONTEÚDO..." : "GERAR SUGESTÃO DE ARTIGO"}
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-6 animate-in slide-in-from-bottom-4">
-                <div className="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-4">
-                  <div className="flex items-center gap-2 text-[#cfec0f]">
-                    <ShieldCheck size={16} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Artigo Revisado pelo Sistema</span>
-                  </div>
-                  <p className="text-zinc-400 text-xs">Este conteúdo foi criado para atrair o público ideal para sua academia.</p>
-                </div>
-
-                <button
-                  onClick={handleConfirmSaveIA}
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Qual o foco do artigo?</label>
+                <select 
+                  value={targetCategory} 
+                  onChange={e => setTargetCategory(e.target.value)}
                   disabled={loading}
-                  className="w-full bg-green-500 text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] shadow-xl shadow-green-500/20"
+                  className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#cfec0f] text-sm"
                 >
-                  {loading ? <Loader2 className="animate-spin" /> : <Send size={20} />}
-                  SALVAR COMO RASCUNHO
-                </button>
-                <button
-                  onClick={() => setPreviewPost(null)}
-                  className="w-full bg-zinc-800 text-white font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest"
-                >
-                  REFAZER E EDITAR IDEIA
-                </button>
+                  <option>Musculação</option>
+                  <option>Nutrição</option>
+                  <option>Espiritualidade</option>
+                </select>
               </div>
-            )}
+
+              <div className="space-y-2">
+                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Sobre o que deseja falar hoje?</label>
+                <textarea
+                  value={iaPrompt}
+                  onChange={(e) => setIaPrompt(e.target.value)}
+                  disabled={loading}
+                  placeholder="Ex: Como manter a constância nos treinos mesmo em dias difíceis..."
+                  className="w-full bg-black border border-white/10 rounded-3xl p-8 outline-none focus:border-[#cfec0f] text-lg min-h-[200px] resize-none leading-relaxed transition-all"
+                />
+              </div>
+
+              <button
+                onClick={handleGenerateAndSave}
+                disabled={loading || !iaPrompt}
+                className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] shadow-xl shadow-[#cfec0f]/20 disabled:opacity-50 disabled:grayscale transition-all"
+              >
+                {loading ? <RefreshCw className="animate-spin" size={20} /> : <Zap size={20} />}
+                {loading ? "INTELIGÊNCIA EM CURSO..." : "GERAR E PUBLICAR NO FEED"}
+              </button>
+            </div>
 
             {errorMsg && (
               <div className="p-5 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-500">
@@ -195,16 +200,19 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
             )}
           </div>
 
-          <div className="bg-zinc-900/5 border border-dashed border-white/10 rounded-[40px] p-10 overflow-y-auto max-h-[80vh] custom-scrollbar">
-            {previewPost ? (
-              <div className="animate-in fade-in duration-700 space-y-8">
-                <h1 className="text-3xl font-black italic text-white">{previewPost.title}</h1>
-                <div className="prose prose-invert prose-sm" dangerouslySetInnerHTML={{ __html: previewPost.content }} />
+          <div className="lg:col-span-2 flex flex-col justify-center items-center p-12 bg-black/40 border border-dashed border-white/10 rounded-[40px] text-center">
+            {loading ? (
+              <div className="space-y-6 animate-pulse">
+                <div className="w-20 h-20 bg-neon/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <RefreshCw className="text-neon animate-spin" size={32} />
+                </div>
+                <p className="text-xl font-black italic uppercase text-white">{loadingMessages[loadingStep]}</p>
+                <p className="text-[9px] text-zinc-600 font-black uppercase tracking-[0.2em]">O n8n está construindo seu conteúdo agora...</p>
               </div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
-                <FileText size={48} className="mb-4" />
-                <p className="text-[10px] font-black uppercase tracking-widest">Aguardando seu tema para criar...</p>
+              <div className="space-y-6 opacity-30">
+                <FileText size={48} className="mx-auto" />
+                <p className="text-[10px] font-black uppercase tracking-widest">Defina o tema à esquerda para iniciar a automação editorial.</p>
               </div>
             )}
           </div>

@@ -8,6 +8,7 @@ export interface PostPreview {
 /**
  * SERVIÇO EDITORIAL INTELIGENTE
  * Centraliza a comunicação com o Hub de Automação n8n.
+ * Configurado para aguardar respostas longas sem interrupção.
  */
 export const aiService = {
   async getPreview(prompt: string, category: string): Promise<any> {
@@ -20,6 +21,8 @@ export const aiService = {
 
   async callAutomation(payload: any): Promise<any> {
     try {
+      // Nota: Fetch padrão do navegador não tem timeout.
+      // Aguardamos o tempo necessário para o n8n processar.
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
         headers: { 
@@ -36,7 +39,6 @@ export const aiService = {
       }
 
       // O n8n deve retornar um objeto contendo 'post' {title, excerpt, content}
-      // Se retornar diretamente na raiz, mapeamos aqui
       if (!data.post && data.title && data.content) {
         return { 
           success: true, 
@@ -51,6 +53,9 @@ export const aiService = {
 
       return data;
     } catch (e: any) {
+      if (e.name === 'AbortError') {
+        throw new Error("A conexão foi interrompida pelo navegador. Tente novamente.");
+      }
       console.error("Editorial Hub Error:", e);
       throw e;
     }
@@ -59,7 +64,7 @@ export const aiService = {
   async testIntegration(): Promise<{ success: boolean; message: string }> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s para teste de ping é aceitável
       
       const response = await fetch('/api/ai/generate', {
         method: 'POST',

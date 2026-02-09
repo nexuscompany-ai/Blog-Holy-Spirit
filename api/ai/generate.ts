@@ -33,7 +33,7 @@ export default async function handler(req: Request) {
     }
 
     // A URL do Webhook do n8n deve ser configurada nas variáveis de ambiente do servidor
-    const N8N_WEBHOOK_URL = process.env.VITE_N8N_WEBHOOK_URL || 'https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator';
+    const N8N_WEBHOOK_URL = process.env.VITE_N8N_WEBHOOK_URL || 'https://SEU-ENDPOINT.n8n.cloud/webhook/SEU-WEBHOOK';
 
     // Encaminha os dados para o n8n
     const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
