@@ -7,8 +7,7 @@ const ManageAutomation: React.FC = () => {
   const [settings, setSettings] = useState<AutomationSettings>({
     enabled: false,
     frequency_days: 3,
-    topics: 'Musculação em alta, Nutrição para hipertrofia, Saúde espiritual no treino',
-    target_category: 'Musculação'
+    topics: 'Musculação em alta, Nutrição para hipertrofia, Saúde espiritual no treino'
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -86,20 +85,6 @@ const ManageAutomation: React.FC = () => {
                   </button>
                 ))}
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Focar na Categoria</label>
-              <select 
-                value={settings.target_category}
-                onChange={e => setSettings({...settings, target_category: e.target.value})}
-                className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-neon text-sm"
-              >
-                <option>Musculação</option>
-                <option>Nutrição</option>
-                <option>Espiritualidade</option>
-                <option>Lifestyle</option>
-              </select>
             </div>
           </div>
         </div>

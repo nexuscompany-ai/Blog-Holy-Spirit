@@ -11,18 +11,16 @@ export interface PostPreview {
  * Configurado para aguardar respostas longas sem interrupção.
  */
 export const aiService = {
-  async getPreview(prompt: string, category: string): Promise<any> {
-    return this.callAutomation({ mode: 'preview', prompt, category });
+  async getPreview(prompt: string): Promise<any> {
+    return this.callAutomation({ mode: 'preview', prompt });
   },
 
-  async publishPost(postData: PostPreview, category: string): Promise<any> {
-    return this.callAutomation({ mode: 'publish', postData, category });
+  async publishPost(postData: PostPreview): Promise<any> {
+    return this.callAutomation({ mode: 'publish', postData });
   },
 
   async callAutomation(payload: any): Promise<any> {
     try {
-      // Nota: Fetch padrão do navegador não tem timeout.
-      // Aguardamos o tempo necessário para o n8n processar.
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
         headers: { 
@@ -38,7 +36,6 @@ export const aiService = {
         throw new Error(data.details || data.error || 'Ocorreu um erro na automação editorial.');
       }
 
-      // O n8n deve retornar um objeto contendo 'post' {title, excerpt, content}
       if (!data.post && data.title && data.content) {
         return { 
           success: true, 
@@ -64,7 +61,7 @@ export const aiService = {
   async testIntegration(): Promise<{ success: boolean; message: string }> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s para teste de ping é aceitável
+      const timeoutId = setTimeout(() => controller.abort(), 10000); 
       
       const response = await fetch('/api/ai/generate', {
         method: 'POST',

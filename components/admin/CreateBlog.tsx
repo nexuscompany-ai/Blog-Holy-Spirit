@@ -21,7 +21,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
   
   // States do Assistente
   const [iaPrompt, setIaPrompt] = useState('');
-  const [targetCategory, setTargetCategory] = useState('Musculação');
   
   // States Manuais
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,7 +28,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     title: '',
     content: '',
     excerpt: '',
-    category_id: null,
     image_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
   });
 
@@ -59,24 +57,23 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     setErrorMsg('');
     
     try {
-      // 1. Solicita a geração ao n8n (sem timeout no fetch)
-      const result = await aiService.getPreview(iaPrompt, targetCategory);
+      // 1. Solicita a geração ao n8n
+      const result = await aiService.getPreview(iaPrompt);
       
       if (result.post) {
-        // 2. Salva automaticamente no Banco de Dados
+        // 2. Salva automaticamente no Banco de Dados (Post table simples)
         await dbService.saveBlog({
           title: result.post.title,
           content: result.post.content,
           excerpt: result.post.excerpt,
-          category: targetCategory,
           source: 'ai',
-          published_at: null // Salva como rascunho por padrão
+          published_at: null 
         });
 
         // 3. Feedback de sucesso e redirecionamento
         setCreationSuccess(true);
         setTimeout(() => {
-          onSuccess(); // Redireciona para "Meus Artigos"
+          onSuccess(); 
         }, 2500);
       } else {
         throw new Error("O servidor de inteligência não retornou um conteúdo válido.");
@@ -157,20 +154,6 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
             </h2>
             
             <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Qual o foco do artigo?</label>
-                <select 
-                  value={targetCategory} 
-                  onChange={e => setTargetCategory(e.target.value)}
-                  disabled={loading}
-                  className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#cfec0f] text-sm"
-                >
-                  <option>Musculação</option>
-                  <option>Nutrição</option>
-                  <option>Espiritualidade</option>
-                </select>
-              </div>
-
               <div className="space-y-2">
                 <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Sobre o que deseja falar hoje?</label>
                 <textarea

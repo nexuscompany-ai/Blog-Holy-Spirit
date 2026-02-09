@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Calendar as CalendarIcon, MapPin, ArrowLeft, Sparkles, X, Clock, Info, MessageSquare } from 'lucide-react';
 import { dbService, HolyEvent, HolySettings, supabase } from '../db';
@@ -8,7 +9,6 @@ export interface BlogPost {
   title: string;
   content: string;
   excerpt: string;
-  category: string; // O dbService já entrega o nome via Join
   image_url: string;
   created_at: string;
   published_at?: string | null;
@@ -72,9 +72,6 @@ const BlogSection: React.FC = () => {
 
           <article className="space-y-16 animate-in fade-in duration-700">
             <header className="space-y-8 text-center">
-              <span className="bg-neon text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">
-                {selectedPost.category || 'Templo'}
-              </span>
               <h1 className="text-6xl md:text-8xl font-black uppercase italic tracking-tighter leading-[0.85] text-white">
                 {selectedPost.title}
               </h1>
@@ -113,60 +110,6 @@ const BlogSection: React.FC = () => {
 
   return (
     <section id="blog" className="py-32 bg-black">
-      {selectedEvent && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-xl bg-black/80 animate-in fade-in duration-300">
-          <div className="bg-zinc-950 border border-white/10 w-full max-w-3xl rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in duration-300 flex flex-col max-h-[90vh]">
-            <div className="relative aspect-video">
-              {selectedEvent.image ? (
-                <img src={selectedEvent.image} className="w-full h-full object-cover" alt={selectedEvent.title} />
-              ) : (
-                <div className="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-700">
-                  <CalendarIcon size={64} />
-                </div>
-              )}
-              <button 
-                onClick={() => setSelectedEvent(null)}
-                className="absolute top-6 right-6 p-3 bg-black/60 text-white rounded-full hover:bg-neon hover:text-black transition-all"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            
-            <div className="p-10 space-y-8 overflow-y-auto custom-scrollbar">
-              <div>
-                <span className="bg-neon text-black px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{selectedEvent.category}</span>
-                <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white mt-4">{selectedEvent.title}</h2>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6 border-y border-white/5 py-8">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase text-zinc-600 flex items-center gap-2"><Clock size={14} className="text-neon" /> Horário</p>
-                  <p className="text-white font-bold">{new Date(selectedEvent.date).toLocaleDateString('pt-BR')} às {selectedEvent.time}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase text-zinc-600 flex items-center gap-2"><MapPin size={14} className="text-neon" /> Local</p>
-                  <p className="text-white font-bold italic">{selectedEvent.location}</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <p className="text-zinc-400 text-lg leading-relaxed whitespace-pre-wrap">{selectedEvent.description}</p>
-              </div>
-
-              {selectedEvent.whatsappEnabled && (
-                <a 
-                  href={`https://wa.me/${selectedEvent.whatsappNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(selectedEvent.whatsappMessage || '')}`}
-                  target="_blank"
-                  className="btn-primary w-full py-6 text-sm"
-                >
-                  <MessageSquare size={18} /> Garantir minha vaga no WhatsApp
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-12">
           <div className="space-y-6">
@@ -204,7 +147,6 @@ const BlogSection: React.FC = () => {
               <BlogCard 
                 key={post.id}
                 image={post.image_url}
-                category={post.category || 'Artigo'}
                 title={post.title}
                 desc={post.excerpt || post.content.replace(/<[^>]*>/g, '').substring(0, 160) + '...'}
                 date={new Date(post.published_at!).toLocaleDateString('pt-BR')}
@@ -234,11 +176,6 @@ const BlogSection: React.FC = () => {
                       <CalendarIcon size={48} />
                     </div>
                   )}
-                  <div className="absolute top-6 left-6 flex gap-2">
-                     <span className="bg-neon text-black px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest">
-                        {event.category}
-                      </span>
-                  </div>
                 </div>
                 <div className="p-10 space-y-6 flex-grow flex flex-col">
                   <h3 className="text-2xl font-black italic uppercase tracking-tighter group-hover:text-neon transition-colors text-white">
@@ -266,11 +203,6 @@ const BlogSection: React.FC = () => {
                 </div>
               </div>
             ))}
-            {events.length === 0 && (
-              <div className="col-span-full py-20 text-center border border-dashed border-white/5 rounded-[40px]">
-                <p className="text-zinc-500 font-bold uppercase text-xs tracking-widest">Nenhum evento ativo no momento.</p>
-              </div>
-            )}
           </div>
         )}
       </div>

@@ -42,7 +42,6 @@ export interface AutomationSettings {
   enabled: boolean;
   frequency_days: number;
   topics: string;
-  target_category: string;
 }
 
 export interface DashboardMetrics {
@@ -53,43 +52,16 @@ export interface DashboardMetrics {
 }
 
 /**
- * RESOLUÇÃO DE CATEGORIA
- * Converte nome de categoria em UUID do banco para evitar erro 22P02.
- */
-async function resolveCategoryId(categoryName: string | undefined): Promise<string | null> {
-  if (!categoryName) return null;
-  
-  // Se já for um UUID, retorna ele mesmo
-  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(categoryName);
-  if (isUUID) return categoryName;
-
-  const { data, error } = await supabase
-    .from('categories')
-    .select('id')
-    .ilike('name', categoryName)
-    .maybeSingle();
-
-  if (error || !data) {
-    // Se não encontrar, tenta buscar a categoria padrão 'Geral' ou retorna null
-    const { data: fallback } = await supabase.from('categories').select('id').ilike('name', 'Geral').maybeSingle();
-    return fallback?.id || null;
-  }
-  return data.id;
-}
-
-/**
  * SANEAMENTO DE PAYLOAD PARA POSTS
- * Filtra apenas colunas existentes e mapeia nomes de campos do frontend.
+ * Filtra apenas colunas que realmente existem na tabela posts (title, slug, excerpt, content, image_url, published_at).
+ * Removemos category e category_id pois não existem no schema do Supabase.
  */
 async function sanitizePostPayload(input: any) {
-  const categoryId = await resolveCategoryId(input.category_id || input.category);
-  
   return {
     title: input.title,
     content: input.content,
     excerpt: input.excerpt || (input.content ? input.content.replace(/<[^>]*>/g, '').substring(0, 160) : ''),
     image_url: input.image_url || input.image || input.imageUrl || '',
-    category_id: categoryId, // UUID ou null
     published_at: input.published_at || null,
     updated_at: new Date().toISOString()
   };
@@ -199,30 +171,28 @@ export const dbService = {
 
   async getBlogs() {
     try {
-      // Join com a tabela categories para obter o nome para o frontend
+      // Query simples sem JOINS para evitar Erro 400
       const { data, error } = await supabase
         .from('posts')
-        .select('*, categories(name)')
+        .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) return [];
-      
-      // Mapeia para que o frontend veja 'category' como o nome
-      return (data || []).map(post => ({
-        ...post,
-        category: post.categories?.name || 'Geral'
-      }));
-    } catch {
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error("Erro ao buscar blogs:", err);
       return [];
     }
   },
 
-  // Fix: Property 'created_at' does not exist on inferred type from sanitizePostPayload. 
-  // Using spread to safely add created_at.
   async saveBlog(post: any) {
     const sanitized = await sanitizePostPayload(post);
+    // Gerar um slug único se não existir
+    const slug = post.slug || sanitized.title.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '') + '-' + Math.random().toString(36).substring(2, 7);
+    
     const payload = {
       ...sanitized,
+      slug,
       created_at: new Date().toISOString()
     };
     
@@ -291,14 +261,13 @@ export const dbService = {
     }
   },
 
-  // Fix: Corrected table name from 'posts' to 'events' for event deletion
   async deleteEvent(id: string) {
     const { error } = await supabase.from('events').delete().eq('id', id);
     if (error) throw error;
   },
 
   async getAutomationSettings(): Promise<AutomationSettings> {
-    const defaults: AutomationSettings = { enabled: false, frequency_days: 3, topics: '', target_category: 'Musculação' };
+    const defaults: AutomationSettings = { enabled: false, frequency_days: 3, topics: '' };
     try {
       const { data, error } = await supabase.from('automation_settings').select('*').maybeSingle();
       if (error) return defaults;
@@ -311,11 +280,5 @@ export const dbService = {
   async saveAutomationSettings(settings: AutomationSettings) {
     const { error } = await supabase.from('automation_settings').upsert({ ...settings, id: 'config' });
     if (error) throw error;
-  },
-
-  async getCategories() {
-    const { data, error } = await supabase.from('categories').select('*').order('name');
-    if (error) return [];
-    return data || [];
   }
 };

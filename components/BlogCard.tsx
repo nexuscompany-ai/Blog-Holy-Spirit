@@ -3,8 +3,7 @@ import React from 'react';
 import { ArrowUpRight, Clock, Shield, FileText } from 'lucide-react';
 
 interface BlogCardProps {
-  image?: string; // image_url vindo do pai
-  category: string; // category_id vindo do pai
+  image?: string; 
   title: string;
   desc: string;
   author: {
@@ -16,7 +15,7 @@ interface BlogCardProps {
   onClick?: () => void;
 }
 
-const BlogCard: React.FC<BlogCardProps> = ({ image, category, title, desc, author, date, readTime, onClick }) => {
+const BlogCard: React.FC<BlogCardProps> = ({ image, title, desc, author, date, readTime, onClick }) => {
   const hasImage = image && image.length > 20;
 
   return (
@@ -31,19 +30,11 @@ const BlogCard: React.FC<BlogCardProps> = ({ image, category, title, desc, autho
             alt={title}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
           />
-          <div className="absolute top-6 left-6">
-            <span className="bg-neon text-black text-[9px] font-black px-4 py-1.5 uppercase rounded-full shadow-2xl">
-              {category}
-            </span>
-          </div>
         </div>
       )}
 
       {!hasImage && (
         <div className="px-10 pt-10 flex items-center justify-between">
-          <span className="bg-neon/10 text-neon text-[9px] font-black px-4 py-1.5 uppercase rounded-full border border-neon/20">
-            {category}
-          </span>
           <FileText size={18} className="text-zinc-700" />
         </div>
       )}
