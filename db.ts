@@ -89,18 +89,6 @@ const mapEventFromDB = (data: any): HolyEvent => {
   };
 };
 
-const createSlug = (text: string) => {
-  if (!text) return `post-${Math.random().toString(36).substring(2, 7)}`;
-  return text
-    .toLowerCase()
-    .trim()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '') + '-' + Math.random().toString(36).substring(2, 7);
-};
-
 export const dbService = {
   async login(email: string, pass: string) {
     const { data, error } = await (supabase.auth as any).signInWithPassword({ email, password: pass });
@@ -184,19 +172,12 @@ export const dbService = {
   },
 
   async saveBlog(post: any) {
-    const now = new Date().toISOString();
-    const slug = post.slug || createSlug(post.title || 'post');
-    
+    // Payload limpo e compatível com o schema real do Supabase
     const payload = {
       title: post.title,
-      slug: slug.toLowerCase(),
       content: post.content,
-      excerpt: post.excerpt || post.content?.substring(0, 160).replace(/<[^>]*>/g, '') || '',
-      category: post.category || 'Geral',
-      image: post.image || '',
-      source: post.source || 'manual',
-      created_at: now,
-      updated_at: now,
+      category_id: post.category_id || post.category || null,
+      image_url: post.image_url || post.image || '',
       published_at: post.published_at || null
     };
     
@@ -209,18 +190,17 @@ export const dbService = {
 
   async updateBlog(id: string, updates: any) {
     if (!id) throw new Error("ID do post obrigatório.");
-    const now = new Date().toISOString();
     
-    // Payload limpo para evitar Erro 400 (apenas colunas existentes)
+    // Payload estritamente compatível: title, content, image_url, category_id
     const payload: any = {};
     if (updates.title !== undefined) payload.title = updates.title;
-    if (updates.excerpt !== undefined) payload.excerpt = updates.excerpt;
     if (updates.content !== undefined) payload.content = updates.content;
-    if (updates.category !== undefined) payload.category = updates.category;
-    if (updates.image !== undefined) payload.image = updates.image;
-    if (updates.published_at !== undefined) payload.published_at = updates.published_at;
+    if (updates.image_url !== undefined) payload.image_url = updates.image_url;
+    // Fallback caso venha como category
+    if (updates.category_id !== undefined) payload.category_id = updates.category_id;
+    else if (updates.category !== undefined) payload.category_id = updates.category;
     
-    payload.updated_at = now;
+    if (updates.published_at !== undefined) payload.published_at = updates.published_at;
 
     const { error } = await supabase
       .from('posts')
@@ -228,7 +208,7 @@ export const dbService = {
       .eq('id', id);
 
     if (error) {
-      console.error("Erro na atualização do blog:", error);
+      console.error("Erro na atualização do blog (PGRST204/400 Fix):", error);
       throw error;
     }
   },

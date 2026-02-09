@@ -7,11 +7,9 @@ import BlogCard from './BlogCard';
 export interface BlogPost {
   id: string;
   title: string;
-  excerpt: string;
   content: string;
-  category: string;
-  image: string;
-  slug: string;
+  category_id: string; // Corrigido de category
+  image_url: string;   // Corrigido de image
   created_at: string;
   published_at?: string | null;
 }
@@ -80,24 +78,20 @@ const BlogSection: React.FC = () => {
           <article className="space-y-16 animate-in fade-in duration-700">
             <header className="space-y-8 text-center">
               <span className="bg-neon text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">
-                {selectedPost.category}
+                {selectedPost.category_id || 'Geral'}
               </span>
               <h1 className="text-6xl md:text-8xl font-black uppercase italic tracking-tighter leading-[0.85] text-white">
                 {selectedPost.title}
               </h1>
-              <p className="text-zinc-500 text-2xl leading-relaxed italic border-l-4 border-neon pl-8 max-w-2xl mx-auto">
-                "{selectedPost.excerpt}"
-              </p>
             </header>
 
-            {selectedPost.image && selectedPost.image.length > 20 && (
+            {selectedPost.image_url && selectedPost.image_url.length > 20 && (
               <div className="aspect-video rounded-[60px] overflow-hidden border border-white/5 shadow-2xl relative">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
-                <img src={selectedPost.image} alt={selectedPost.title} className="w-full h-full object-cover" />
+                <img src={selectedPost.image_url} alt={selectedPost.title} className="w-full h-full object-cover" />
               </div>
             )}
 
-            {/* CORREÇÃO: Renderização de HTML interpretada */}
             <div className="prose prose-invert max-w-none text-zinc-400 text-xl leading-loose space-y-10 font-medium pb-20 blog-content-view">
               <div dangerouslySetInnerHTML={{ __html: selectedPost.content }} />
             </div>
@@ -124,7 +118,6 @@ const BlogSection: React.FC = () => {
 
   return (
     <section id="blog" className="py-32 bg-black">
-      {/* MODAL DE DETALHES DO EVENTO */}
       {selectedEvent && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-xl bg-black/80 animate-in fade-in duration-300">
           <div className="bg-zinc-950 border border-white/10 w-full max-w-3xl rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
@@ -215,10 +208,10 @@ const BlogSection: React.FC = () => {
             {posts.map((post) => (
               <BlogCard 
                 key={post.id}
-                image={post.image}
-                category={post.category}
+                image={post.image_url} // Mapeado para image_url
+                category={post.category_id || 'Geral'} // Mapeado para category_id
                 title={post.title}
-                desc={post.excerpt}
+                desc={post.content.replace(/<[^>]*>/g, '').substring(0, 160) + '...'}
                 date={new Date(post.published_at!).toLocaleDateString('pt-BR')}
                 readTime="5 min"
                 author={{ name: "Holy Spirit Editorial", avatar: "/icon.svg" }}

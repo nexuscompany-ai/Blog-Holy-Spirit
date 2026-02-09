@@ -3,8 +3,8 @@ import React from 'react';
 import { ArrowUpRight, Clock, Shield, FileText } from 'lucide-react';
 
 interface BlogCardProps {
-  image?: string;
-  category: string;
+  image?: string; // image_url vindo do pai
+  category: string; // category_id vindo do pai
   title: string;
   desc: string;
   author: {
@@ -17,7 +17,7 @@ interface BlogCardProps {
 }
 
 const BlogCard: React.FC<BlogCardProps> = ({ image, category, title, desc, author, date, readTime, onClick }) => {
-  const hasImage = image && image.length > 20; // Verifica se há uma URL de imagem válida
+  const hasImage = image && image.length > 20;
 
   return (
     <div 

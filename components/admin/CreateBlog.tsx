@@ -28,11 +28,9 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [articleData, setArticleData] = useState({
     title: '',
-    excerpt: '',
     content: '',
-    category: 'Musculação',
-    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
-    source: 'manual'
+    category_id: 'Musculação',
+    image_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
   });
 
   const handleGetPreview = async () => {
@@ -44,8 +42,15 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     try {
       const result = await aiService.getPreview(iaPrompt, targetCategory);
       if (result.post) {
-        // IA entra sempre como rascunho (published_at: null)
-        setPreviewPost({ ...result.post, published_at: null, source: 'ai' });
+        // Normaliza campos para category_id e image_url
+        const normalizedPost = {
+          title: result.post.title,
+          content: result.post.content,
+          category_id: targetCategory,
+          image_url: '', // IA pode não retornar imagem
+          published_at: null
+        };
+        setPreviewPost(normalizedPost);
       } else {
         throw new Error("O n8n retornou sucesso mas o post está vazio.");
       }
@@ -104,7 +109,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     setUploading(true);
     const reader = new FileReader();
     reader.onloadend = () => {
-      setArticleData(prev => ({ ...prev, image: reader.result as string }));
+      setArticleData(prev => ({ ...prev, image_url: reader.result as string }));
       setUploading(false);
     };
     reader.readAsDataURL(file);
@@ -177,7 +182,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                     <ShieldCheck size={16} />
                     <span className="text-[10px] font-black uppercase tracking-widest">Pipeline Validado</span>
                   </div>
-                  <p className="text-zinc-400 text-xs">O artigo será salvo como <strong>Rascunho</strong>. Você precisará lançá-lo no templo para torná-lo público.</p>
+                  <p className="text-zinc-400 text-xs">O artigo será salvo como <strong>Rascunho</strong> no Supabase.</p>
                 </div>
 
                 <div className="flex flex-col gap-3">
@@ -187,7 +192,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                     className="w-full bg-green-500 text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-green-500/20"
                   >
                     {loading ? <Loader2 className="animate-spin" /> : <Send size={20} />}
-                    SALVAR RASCUNHO
+                    SALVAR NO BANCO
                   </button>
                   
                   <button
@@ -243,7 +248,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
               />
             </div>
             <div className="space-y-2">
-               <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-4">Conteúdo (HTML/Markdown)</label>
+               <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-4">Conteúdo (HTML)</label>
                <textarea 
                 value={articleData.content} 
                 onChange={e => setArticleData({...articleData, content: e.target.value})} 
@@ -260,9 +265,23 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                   className="aspect-video bg-black border border-white/10 rounded-3xl overflow-hidden cursor-pointer relative group flex items-center justify-center"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <img src={articleData.image} className="w-full h-full object-cover group-hover:opacity-40 transition-all" alt="Preview" />
+                  <img src={articleData.image_url} className="w-full h-full object-cover group-hover:opacity-40 transition-all" alt="Preview" />
                   <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Categoria</label>
+                <select 
+                  value={articleData.category_id}
+                  onChange={e => setArticleData({...articleData, category_id: e.target.value})}
+                  className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-neon text-sm"
+                >
+                  <option>Musculação</option>
+                  <option>Nutrição</option>
+                  <option>Espiritualidade</option>
+                  <option>Lifestyle</option>
+                </select>
               </div>
 
               <div className="flex flex-col gap-3">

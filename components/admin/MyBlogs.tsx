@@ -58,11 +58,12 @@ const MyBlogs: React.FC = () => {
     if (!editingBlog) return;
     setLoading(true);
     try {
+      // O dbService já filtra o payload para category_id e image_url
       await dbService.updateBlog(editingBlog.id, editingBlog);
       setEditingBlog(null);
       await fetchBlogs();
     } catch (err) {
-      alert("Erro ao salvar alterações.");
+      alert("Erro ao salvar alterações no Supabase.");
     } finally {
       setLoading(false);
     }
@@ -73,7 +74,7 @@ const MyBlogs: React.FC = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setEditingBlog({ ...editingBlog, image: reader.result as string });
+        setEditingBlog({ ...editingBlog, image_url: reader.result as string });
       };
       reader.readAsDataURL(file);
     }
@@ -107,24 +108,16 @@ const MyBlogs: React.FC = () => {
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest ml-2">Categoria</label>
                     <select 
-                      value={editingBlog.category}
-                      onChange={e => setEditingBlog({...editingBlog, category: e.target.value})}
+                      value={editingBlog.category_id || editingBlog.category || ''}
+                      onChange={e => setEditingBlog({...editingBlog, category_id: e.target.value})}
                       className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-neon"
                     >
-                      <option>Musculação</option>
-                      <option>Nutrição</option>
-                      <option>Espiritualidade</option>
-                      <option>Lifestyle</option>
+                      <option value="">Geral</option>
+                      <option value="Musculação">Musculação</option>
+                      <option value="Nutrição">Nutrição</option>
+                      <option value="Espiritualidade">Espiritualidade</option>
+                      <option value="Lifestyle">Lifestyle</option>
                     </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest ml-2">Resumo (Excerpt)</label>
-                    <textarea 
-                      value={editingBlog.excerpt}
-                      onChange={e => setEditingBlog({...editingBlog, excerpt: e.target.value})}
-                      rows={3}
-                      className="w-full bg-black border border-white/10 rounded-2xl p-6 outline-none focus:border-neon resize-none text-sm text-zinc-400"
-                    />
                   </div>
                 </div>
 
@@ -135,8 +128,8 @@ const MyBlogs: React.FC = () => {
                       onClick={() => fileInputRef.current?.click()}
                       className="aspect-video bg-black border border-white/10 rounded-3xl overflow-hidden cursor-pointer group relative flex items-center justify-center"
                     >
-                      {editingBlog.image ? (
-                        <img src={editingBlog.image} className="w-full h-full object-cover group-hover:opacity-40 transition-all" alt="Preview" />
+                      {(editingBlog.image_url || editingBlog.image) ? (
+                        <img src={editingBlog.image_url || editingBlog.image} className="w-full h-full object-cover group-hover:opacity-40 transition-all" alt="Preview" />
                       ) : (
                         <div className="flex flex-col items-center text-zinc-700">
                           <Camera size={32} />
@@ -153,7 +146,7 @@ const MyBlogs: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest ml-2">Conteúdo HTML/Texto</label>
+                <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest ml-2">Conteúdo HTML</label>
                 <textarea 
                   value={editingBlog.content}
                   onChange={e => setEditingBlog({...editingBlog, content: e.target.value})}
@@ -196,14 +189,13 @@ const MyBlogs: React.FC = () => {
             <tr>
               <th className="px-8 py-6">Postagem</th>
               <th className="px-8 py-6">Status</th>
-              <th className="px-8 py-6">Origem</th>
               <th className="px-8 py-6 text-right">Gerenciar</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
             {blogs.map((blog) => {
               const isPublished = !!blog.published_at;
-              const hasImage = blog.image && blog.image.length > 20;
+              const hasImage = (blog.image_url || blog.image) && (blog.image_url || blog.image).length > 20;
               
               return (
                 <tr key={blog.id} className="hover:bg-white/5 transition-colors group">
@@ -211,14 +203,14 @@ const MyBlogs: React.FC = () => {
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl overflow-hidden bg-black border border-white/5 shrink-0 flex items-center justify-center">
                         {hasImage ? (
-                          <img src={blog.image} className="w-full h-full object-cover" alt="" />
+                          <img src={blog.image_url || blog.image} className="w-full h-full object-cover" alt="" />
                         ) : (
                           <FileText size={16} className="text-zinc-800" />
                         )}
                       </div>
                       <div>
                         <p className="font-black italic text-white group-hover:text-neon transition-colors truncate max-w-[300px]">{blog.title}</p>
-                        <p className="text-[9px] text-zinc-600 uppercase font-black">{blog.category} • /{blog.slug}</p>
+                        <p className="text-[9px] text-zinc-600 uppercase font-black">{blog.category_id || blog.category || 'Geral'}</p>
                       </div>
                     </div>
                   </td>
@@ -232,12 +224,6 @@ const MyBlogs: React.FC = () => {
                         <EyeOff size={10} /> Rascunho
                       </span>
                     )}
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-zinc-500">
-                      {blog.source === 'ai' ? <BrainCircuit size={14} className="text-neon" /> : <User size={14} />}
-                      {blog.source === 'ai' ? 'IA' : 'Manual'}
-                    </div>
                   </td>
                   <td className="px-8 py-6 text-right">
                     <div className="flex justify-end gap-2">
