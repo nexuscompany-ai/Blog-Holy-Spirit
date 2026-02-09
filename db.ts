@@ -53,20 +53,18 @@ export interface DashboardMetrics {
 }
 
 /**
- * MAPPERS PARA COMPATIBILIDADE DEFINITIVA (camelCase <-> snake_case)
+ * MAPPERS PARA EVENTOS (camelCase <-> snake_case)
  */
 const mapEventToDB = (event: Partial<HolyEvent>) => {
   const mapped: any = {};
-  
-  // Mapeamento direto de campos comuns
   const directFields = ['title', 'date', 'time', 'location', 'description', 'category', 'status', 'image'];
+  
   directFields.forEach(field => {
     if ((event as any)[field] !== undefined) {
       mapped[field] = (event as any)[field];
     }
   });
 
-  // Mapeamento explícito de camelCase para snake_case
   if (event.whatsappEnabled !== undefined) mapped.whatsapp_enabled = event.whatsappEnabled;
   if (event.whatsappNumber !== undefined) mapped.whatsapp_number = event.whatsappNumber;
   if (event.whatsappMessage !== undefined) mapped.whatsapp_message = event.whatsappMessage;
@@ -93,16 +91,14 @@ const mapEventFromDB = (data: any): HolyEvent => {
 
 const createSlug = (text: string) => {
   if (!text) return `post-${Math.random().toString(36).substring(2, 7)}`;
-  const cleanText = text
+  return text
     .toLowerCase()
     .trim()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^\w\s-]/g, '')
     .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-    
-  return `${cleanText}-${Math.random().toString(36).substring(2, 7)}`;
+    .replace(/^-+|-+$/g, '') + '-' + Math.random().toString(36).substring(2, 7);
 };
 
 export const dbService = {
@@ -191,7 +187,7 @@ export const dbService = {
     const now = new Date().toISOString();
     const slug = post.slug || createSlug(post.title || 'post');
     
-    const finalPost: any = {
+    const payload = {
       title: post.title,
       slug: slug.toLowerCase(),
       content: post.content,
@@ -204,62 +200,27 @@ export const dbService = {
       published_at: post.published_at || null
     };
     
-    const { error } = await supabase.from('posts').insert([finalPost]);
+    const { error } = await supabase.from('posts').insert([payload]);
     if (error) {
       console.error("Erro ao salvar post:", error);
       throw error;
     }
   },
 
-async updateBlog(id: string, updates: any) {
-  if (!id) throw new Error("ID do post obrigatório.");
-
-  const now = new Date().toISOString();
-
-  // ✅ PAYLOAD CONTROLADO — SOMENTE CAMPOS DO BANCO
-  const payload: any = {
-    updated_at: now
-  };
-
-  if (typeof updates.title === 'string') payload.title = updates.title;
-  if (typeof updates.content === 'string') payload.content = updates.content;
-  if (typeof updates.excerpt === 'string') payload.excerpt = updates.excerpt;
-  if (typeof updates.category === 'string') payload.category = updates.category;
-  if (typeof updates.image === 'string') payload.image = updates.image;
-
-  // published_at (publicar / despublicar)
-  if ('published_at' in updates) {
-    payload.published_at = updates.published_at;
-  }
-
-  // 🚨 DEBUG TEMPORÁRIO (PODE REMOVER DEPOIS)
-  console.log('PAYLOAD FINAL UPDATE POST:', payload);
-
-  const { error } = await supabase
-    .from('posts')
-    .update(payload)
-    .eq('id', id);
-
-  if (error) {
-    console.error("Erro na atualização do blog:", error);
-    throw error;
-  }
-}
-
-  // resto do código...
-}
-
+  async updateBlog(id: string, updates: any) {
+    if (!id) throw new Error("ID do post obrigatório.");
+    const now = new Date().toISOString();
     
-    // Filtra campos para não enviar dados inválidos
-    const payload: any = {
-      title: updates.title,
-      excerpt: updates.excerpt,
-      content: updates.content,
-      category: updates.category,
-      image: updates.image,
-      published_at: updates.published_at,
-      updated_at: now
-    };
+    // Payload limpo para evitar Erro 400 (apenas colunas existentes)
+    const payload: any = {};
+    if (updates.title !== undefined) payload.title = updates.title;
+    if (updates.excerpt !== undefined) payload.excerpt = updates.excerpt;
+    if (updates.content !== undefined) payload.content = updates.content;
+    if (updates.category !== undefined) payload.category = updates.category;
+    if (updates.image !== undefined) payload.image = updates.image;
+    if (updates.published_at !== undefined) payload.published_at = updates.published_at;
+    
+    payload.updated_at = now;
 
     const { error } = await supabase
       .from('posts')
@@ -270,6 +231,7 @@ async updateBlog(id: string, updates: any) {
       console.error("Erro na atualização do blog:", error);
       throw error;
     }
+  },
 
   async deleteBlog(id: string) {
     const { error } = await supabase.from('posts').delete().eq('id', id);
