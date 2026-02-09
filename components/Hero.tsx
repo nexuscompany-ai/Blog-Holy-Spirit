@@ -13,7 +13,8 @@ const Hero: React.FC = () => {
           alt="Holy Spirit Gym"
           className="w-full h-full object-cover grayscale opacity-50"
         />
-        <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-neon/10 rounded-full blur-[120px]"></div>
+        {/* Glow adjust for mobile to prevent overflow */}
+        <div className="absolute top-1/4 right-0 w-[200px] md:w-[400px] h-[200px] md:h-[400px] bg-neon/10 rounded-full blur-[100px] md:blur-[120px]"></div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-20 w-full">
@@ -23,20 +24,20 @@ const Hero: React.FC = () => {
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-300">O Templo da Performance</span>
           </div>
           
-          <h1 className="text-6xl md:text-9xl font-black uppercase italic leading-[0.85] tracking-tighter text-white">
+          <h1 className="text-5xl md:text-9xl font-black uppercase italic leading-[0.9] md:leading-[0.85] tracking-tighter text-white break-words">
             TREINE O <br />
             <span className="text-neon neon-glow">TEMPLO.</span>
           </h1>
           
-          <p className="text-zinc-400 text-lg md:text-xl leading-relaxed max-w-2xl font-medium">
+          <p className="text-zinc-400 text-base md:text-xl leading-relaxed max-w-2xl font-medium">
             Na Holy Spirit, unimos a força física bruta à clareza mental e espiritual. Explore nosso blog para conteúdos exclusivos de treino, nutrição e mentalidade.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <a href="#blog" className="btn-primary group">
+            <a href="#blog" className="btn-primary group w-full sm:w-auto">
               Explorar Blog <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </a>
-            <a href="https://wa.me/5511999999999" target="_blank" className="btn-secondary">
+            <a href="https://wa.me/5511999999999" target="_blank" className="btn-secondary w-full sm:w-auto">
               <Activity size={18} className="text-neon" /> Aula Experimental
             </a>
           </div>
