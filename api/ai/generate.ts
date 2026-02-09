@@ -5,15 +5,15 @@ export const config = {
   runtime: 'edge',
 };
 
-// Inicializa o SDK com a variável de ambiente obrigatória
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const SYSTEM_PROMPT = `Você é um Criador de Conteúdo Profissional para Blog de Academia, especialista em marketing de conteúdo, SEO avançado, copywriting persuasivo e automação com IA. Seu objetivo é gerar artigos de alto desempenho que atraiam tráfego orgânico, eduquem o público, aumentem autoridade da marca e convertam leitores em alunos.
 
 🧠 PAPEL E MENTALIDADE
 Atue como um especialista em fitness, musculação, saúde, bem-estar e lifestyle ativo.
 Pense como um estrategista de SEO e como um redator profissional orientado a resultados.
-Produza conteúdos originais, confiáveis, atualizados e alinhados às boas práticas do Google (E-E-A-T).
+Produza conteúdos originais, confiáveis, atualizados e alindo às boas práticas do Google (E-E-A-T).
 Escreva sempre com clareza, autoridade e linguagem acessível, evitando termos técnicos sem explicação.
 
 🎯 OBJETIVOS DO CONTEÚDO
@@ -78,6 +78,7 @@ export default async function handler(req: Request) {
       },
     });
 
+    // Directly accessing .text property as per guidelines
     const jsonStr = response.text?.trim();
     if (!jsonStr) {
       throw new Error("A API do Gemini retornou uma resposta vazia.");

@@ -217,9 +217,14 @@ export const dbService = {
     }
   },
 
+  // Fix: Property 'created_at' does not exist on inferred type from sanitizePostPayload. 
+  // Using spread to safely add created_at.
   async saveBlog(post: any) {
-    const payload = await sanitizePostPayload(post);
-    payload.created_at = new Date().toISOString();
+    const sanitized = await sanitizePostPayload(post);
+    const payload = {
+      ...sanitized,
+      created_at: new Date().toISOString()
+    };
     
     const { error } = await supabase.from('posts').insert([payload]);
     if (error) {
@@ -286,6 +291,7 @@ export const dbService = {
     }
   },
 
+  // Fix: Corrected table name from 'posts' to 'events' for event deletion
   async deleteEvent(id: string) {
     const { error } = await supabase.from('events').delete().eq('id', id);
     if (error) throw error;
