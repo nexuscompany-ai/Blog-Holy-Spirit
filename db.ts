@@ -212,11 +212,39 @@ export const dbService = {
   },
 
 async updateBlog(id: string, updates: any) {
-  console.log('UPDATES RECEBIDOS:', updates);
-
   if (!id) throw new Error("ID do post obrigatório.");
 
-  const payload: any = { ...updates };
+  const now = new Date().toISOString();
+
+  // ✅ PAYLOAD CONTROLADO — SOMENTE CAMPOS DO BANCO
+  const payload: any = {
+    updated_at: now
+  };
+
+  if (typeof updates.title === 'string') payload.title = updates.title;
+  if (typeof updates.content === 'string') payload.content = updates.content;
+  if (typeof updates.excerpt === 'string') payload.excerpt = updates.excerpt;
+  if (typeof updates.category === 'string') payload.category = updates.category;
+  if (typeof updates.image === 'string') payload.image = updates.image;
+
+  // published_at (publicar / despublicar)
+  if ('published_at' in updates) {
+    payload.published_at = updates.published_at;
+  }
+
+  // 🚨 DEBUG TEMPORÁRIO (PODE REMOVER DEPOIS)
+  console.log('PAYLOAD FINAL UPDATE POST:', payload);
+
+  const { error } = await supabase
+    .from('posts')
+    .update(payload)
+    .eq('id', id);
+
+  if (error) {
+    console.error("Erro na atualização do blog:", error);
+    throw error;
+  }
+}
 
   // resto do código...
 }
