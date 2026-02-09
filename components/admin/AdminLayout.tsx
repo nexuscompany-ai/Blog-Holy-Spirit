@@ -21,11 +21,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'create' | 'list' | 'event' | 'settings' | 'automation'>('dashboard');
 
   const menuItems = [
-    { id: 'dashboard', label: 'Início', icon: <LayoutDashboard size={20} /> },
-    { id: 'create', label: 'Escritora n8n', icon: <Sparkles size={20} /> },
-    { id: 'automation', label: 'Auto-Pilot', icon: <Bot size={20} /> },
-    { id: 'list', label: 'Meus Blogs', icon: <List size={20} /> },
-    { id: 'event', label: 'Eventos', icon: <Calendar size={20} /> },
+    { id: 'dashboard', label: 'Painel Geral', icon: <LayoutDashboard size={20} /> },
+    { id: 'create', label: 'Criação Inteligente', icon: <Sparkles size={20} /> },
+    { id: 'automation', label: 'Postagem Automática', icon: <Bot size={20} /> },
+    { id: 'list', label: 'Meus Artigos', icon: <List size={20} /> },
+    { id: 'event', label: 'Eventos e Aulas', icon: <Calendar size={20} /> },
     { id: 'settings', label: 'Configurações', icon: <SettingsIcon size={20} /> },
   ];
 
@@ -72,7 +72,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ exitAdmin }) => {
               {menuItems.find(i => i.id === activeTab)?.label}
             </h1>
             <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mt-2">
-              Holy Spirit • Gestão Editorial
+              Holy Spirit • Gestão de Conteúdo e Performance
             </p>
           </div>
         </header>

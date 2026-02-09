@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { 
-  Trash2, BrainCircuit, User, RefreshCw, 
+  Trash2, RefreshCw, 
   Globe, Database, Rocket, EyeOff, FileText, Edit3, X, Save, Camera
 } from 'lucide-react';
 import { dbService } from '../../db';
@@ -20,7 +20,7 @@ const MyBlogs: React.FC = () => {
       const freshData = await dbService.getBlogs();
       setBlogs(freshData);
     } catch (err) {
-      console.error("Erro ao sincronizar blogs:", err);
+      console.error("Erro ao sincronizar artigos:", err);
     } finally {
       setLoading(false);
     }
@@ -31,7 +31,7 @@ const MyBlogs: React.FC = () => {
   }, []);
 
   const deleteBlog = async (id: string) => {
-    if (confirm('Deseja excluir este registro permanentemente?')) {
+    if (confirm('Deseja excluir este artigo permanentemente?')) {
       await dbService.deleteBlog(id);
       fetchBlogs();
     }
@@ -60,7 +60,7 @@ const MyBlogs: React.FC = () => {
       setEditingBlog(null);
       await fetchBlogs();
     } catch (err) {
-      alert("Erro ao salvar alterações no Supabase.");
+      alert("Falha ao salvar alterações. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -84,7 +84,7 @@ const MyBlogs: React.FC = () => {
           <div className="bg-zinc-950 border border-white/10 w-full max-w-5xl rounded-[40px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
             <div className="p-8 border-b border-white/5 flex items-center justify-between">
               <h2 className="text-xl font-black uppercase italic text-white flex items-center gap-3">
-                <Edit3 className="text-neon" size={20} /> Editar Artigo
+                <Edit3 className="text-neon" size={20} /> Editar Artigo Selecionado
               </h2>
               <button onClick={() => setEditingBlog(null)} className="text-zinc-500 hover:text-white"><X size={28} /></button>
             </div>
@@ -93,7 +93,7 @@ const MyBlogs: React.FC = () => {
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest ml-2">Título</label>
+                    <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest ml-2">Título do Artigo</label>
                     <input 
                       value={editingBlog.title}
                       onChange={e => setEditingBlog({...editingBlog, title: e.target.value})}
@@ -101,7 +101,7 @@ const MyBlogs: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest ml-2">Capa</label>
+                    <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest ml-2">Foto de Capa</label>
                     <div 
                       onClick={() => fileInputRef.current?.click()}
                       className="aspect-video bg-black border border-white/10 rounded-3xl overflow-hidden cursor-pointer relative flex items-center justify-center"
@@ -117,7 +117,7 @@ const MyBlogs: React.FC = () => {
                 </div>
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest ml-2">Conteúdo HTML</label>
+                    <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest ml-2">Conteúdo</label>
                     <textarea 
                       value={editingBlog.content}
                       onChange={e => setEditingBlog({...editingBlog, content: e.target.value})}
@@ -129,13 +129,13 @@ const MyBlogs: React.FC = () => {
             </div>
 
             <div className="p-8 border-t border-white/5 flex justify-end gap-4">
-              <button onClick={() => setEditingBlog(null)} className="px-8 py-4 rounded-2xl text-[10px] font-black uppercase text-zinc-500">Cancelar</button>
+              <button onClick={() => setEditingBlog(null)} className="px-8 py-4 rounded-2xl text-[10px] font-black uppercase text-zinc-500">Descartar</button>
               <button 
                 onClick={handleUpdate}
                 disabled={loading}
                 className="bg-neon text-black font-black px-12 py-4 rounded-2xl text-[10px] uppercase shadow-xl shadow-neon/20"
               >
-                {loading ? "SALVANDO..." : "SALVAR ALTERAÇÕES"}
+                {loading ? "SALVANDO..." : "ATUALIZAR ARTIGO"}
               </button>
             </div>
           </div>
@@ -144,7 +144,7 @@ const MyBlogs: React.FC = () => {
 
       <div className="flex justify-between items-center bg-zinc-900/30 p-8 rounded-[32px] border border-white/5">
         <h3 className="text-sm font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
-          <Database size={14} className="text-neon" /> Gerenciar Feed
+          <Database size={14} className="text-neon" /> Gerenciar Feed do Site
         </h3>
         <button onClick={fetchBlogs} className="p-3 bg-neon/10 text-neon rounded-xl hover:bg-neon hover:text-black transition-all">
           <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
@@ -155,8 +155,8 @@ const MyBlogs: React.FC = () => {
         <table className="w-full text-left">
           <thead className="bg-black/40 border-b border-white/5 text-[10px] font-black uppercase text-zinc-600 tracking-widest">
             <tr>
-              <th className="px-8 py-6">Postagem</th>
-              <th className="px-8 py-6">Status</th>
+              <th className="px-8 py-6">Título do Artigo</th>
+              <th className="px-8 py-6">Status no Site</th>
               <th className="px-8 py-6 text-right">Ações</th>
             </tr>
           </thead>
@@ -172,7 +172,7 @@ const MyBlogs: React.FC = () => {
                       </div>
                       <div>
                         <p className="font-black italic text-white group-hover:text-neon transition-colors truncate max-w-[300px]">{blog.title}</p>
-                        <p className="text-[9px] text-zinc-600 uppercase font-black">{blog.source === 'ai' ? 'IA' : 'Manual'}</p>
+                        <p className="text-[9px] text-zinc-600 uppercase font-black">{blog.source === 'ai' ? 'Criado pelo Sistema' : 'Escrita Manual'}</p>
                       </div>
                     </div>
                   </td>
@@ -180,7 +180,7 @@ const MyBlogs: React.FC = () => {
                     {isPublished ? (
                       <span className="text-[9px] font-black uppercase px-3 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/10">Público</span>
                     ) : (
-                      <span className="text-[9px] font-black uppercase px-3 py-1 rounded-full bg-zinc-800 text-zinc-500">Rascunho</span>
+                      <span className="text-[9px] font-black uppercase px-3 py-1 rounded-full bg-zinc-800 text-zinc-500">Rascunho Interno</span>
                     )}
                   </td>
                   <td className="px-8 py-6 text-right flex justify-end gap-2">

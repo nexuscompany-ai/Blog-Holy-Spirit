@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Bot, Zap, Calendar, MessageSquare, ShieldCheck, AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
+import { Bot, Zap, MessageSquare, ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
 import { dbService, AutomationSettings } from '../../db';
 
 const ManageAutomation: React.FC = () => {
@@ -43,10 +43,10 @@ const ManageAutomation: React.FC = () => {
             </div>
             <div>
               <h3 className="text-2xl font-black uppercase italic tracking-tighter">
-                {settings.enabled ? 'Auto-Pilot Ativado' : 'Auto-Pilot em Standby'}
+                {settings.enabled ? 'Postagens Automáticas Ativas' : 'Sistema de Postagem em Pausa'}
               </h3>
               <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mt-1">
-                A IA do Templo gera conteúdo de forma autônoma com base nas suas regras.
+                O portal gera conteúdos inéditos sozinho para manter seu site sempre atualizado e relevante.
               </p>
             </div>
           </div>
@@ -57,7 +57,7 @@ const ManageAutomation: React.FC = () => {
               settings.enabled ? 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white' : 'bg-neon text-black hover:scale-105 shadow-xl shadow-neon/20'
             }`}
           >
-            {settings.enabled ? 'DESATIVAR AGORA' : 'ATIVAR AUTOMAÇÃO'}
+            {settings.enabled ? 'PAUSAR PUBLICAÇÕES' : 'ATIVAR PUBLICAÇÕES AUTOMÁTICAS'}
           </button>
         </div>
         {settings.enabled && <div className="absolute top-0 right-0 w-64 h-64 bg-neon/10 rounded-full blur-[100px] animate-pulse"></div>}
@@ -72,7 +72,7 @@ const ManageAutomation: React.FC = () => {
 
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Frequência de Postagem</label>
+              <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Com que frequência novos artigos devem ser criados?</label>
               <div className="grid grid-cols-3 gap-3">
                 {[1, 3, 7].map(days => (
                   <button
@@ -82,14 +82,14 @@ const ManageAutomation: React.FC = () => {
                       settings.frequency_days === days ? 'bg-white text-black border-white' : 'bg-black/40 border-white/5 text-gray-500 hover:text-white'
                     }`}
                   >
-                    Cada {days} {days === 1 ? 'dia' : 'dias'}
+                    A cada {days} {days === 1 ? 'dia' : 'dias'}
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Categoria Alvo</label>
+              <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Focar na Categoria</label>
               <select 
                 value={settings.target_category}
                 onChange={e => setSettings({...settings, target_category: e.target.value})}
@@ -107,20 +107,20 @@ const ManageAutomation: React.FC = () => {
         {/* Content Strategy */}
         <div className="bg-zinc-900/10 p-10 rounded-[40px] border border-white/5 space-y-8">
           <div className="flex items-center gap-3 text-neon font-black text-[10px] uppercase tracking-widest">
-            <MessageSquare size={14} /> Pilares de Conteúdo
+            <MessageSquare size={14} /> Temas e Estratégia
           </div>
           
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Tópicos e Palavras-Chave</label>
+              <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-1">Assuntos de Interesse do seu Aluno</label>
               <textarea 
                 value={settings.topics}
                 onChange={e => setSettings({...settings, topics: e.target.value})}
                 rows={4}
-                placeholder="Ex: Treino de glúteos, dieta cetogênica, motivação matinal..."
+                placeholder="Ex: Treino de força, alimentação saudável, motivação para iniciantes..."
                 className="w-full bg-black border border-white/10 rounded-2xl p-6 outline-none focus:border-neon text-sm resize-none leading-relaxed"
               />
-              <p className="text-[8px] text-zinc-600 font-bold uppercase">Separe os temas por vírgula. A IA irá alternar entre eles.</p>
+              <p className="text-[8px] text-zinc-600 font-bold uppercase">Liste os temas separados por vírgula. O sistema irá alternar entre eles para criar variedade.</p>
             </div>
 
             <button 
@@ -129,7 +129,7 @@ const ManageAutomation: React.FC = () => {
               className="w-full bg-white text-black font-black py-5 rounded-2xl text-[10px] uppercase tracking-widest hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
             >
               {loading ? <RefreshCw className="animate-spin" size={14} /> : <ShieldCheck size={14} />}
-              {loading ? 'SALVANDO...' : 'SALVAR E SINCRONIZAR'}
+              {loading ? 'SINCRONIZANDO REGRAS...' : 'SALVAR PREFERÊNCIAS DE POSTAGEM'}
             </button>
           </div>
         </div>
@@ -139,16 +139,16 @@ const ManageAutomation: React.FC = () => {
       <div className="bg-blue-500/5 border border-blue-500/20 p-8 rounded-[32px] flex items-start gap-6">
         <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl"><AlertCircle size={20} /></div>
         <div className="space-y-2">
-          <h4 className="text-xs font-black uppercase tracking-widest text-blue-400 italic">Como funciona a publicação?</h4>
+          <h4 className="text-xs font-black uppercase tracking-widest text-blue-400 italic">Como funciona a sua estratégia de conteúdo?</h4>
           <p className="text-[10px] text-zinc-500 font-medium leading-loose">
-            Após salvar, as configurações são enviadas para o Supabase. No ambiente de produção, um <strong>Edge Function Cron</strong> despertará a cada período configurado, lerá seus pilares e gerará um post inédito usando Gemini 3 Pro, publicando-o automaticamente no blog.
+            Ao ativar este recurso, o portal passa a trabalhar por você. Nosso agendador inteligente escolhe os melhores horários para publicar os temas definidos, garantindo que sua academia tenha presença digital constante sem exigir seu tempo diário.
           </p>
         </div>
       </div>
 
       {success && (
         <div className="fixed bottom-10 right-10 bg-green-600 text-white px-8 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl flex items-center gap-4 animate-in slide-in-from-right-10 z-[110]">
-          <ShieldCheck /> Automação Consagrada!
+          <ShieldCheck /> Preferências Salvas com Sucesso!
         </div>
       )}
     </div>

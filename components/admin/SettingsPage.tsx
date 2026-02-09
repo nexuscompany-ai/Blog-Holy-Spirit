@@ -1,10 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Save, Building, CheckCircle2, ShieldCheck, 
-  Database, RefreshCw, Activity, Lock, AlertCircle,
+  Save, Building, Database, Activity,
   Instagram, Settings as SettingsIcon, Zap, Loader2,
-  Globe, Info, MessageSquare
+  Info
 } from 'lucide-react';
 import { dbService, HolySettings } from '../../db';
 import { aiService } from '../../services/ai.service';
@@ -13,7 +12,7 @@ const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'general' | 'automation' | 'infra'>('general');
   const [success, setSuccess] = useState(false);
   const [dbStatus, setDbStatus] = useState<'loading' | 'online' | 'offline'>('loading');
-  const [webhookTestStatus, setWebhookTestStatus] = useState<{ loading: boolean; status: 'idle' | 'success' | 'error'; message: string }>({
+  const [serviceTestStatus, setServiceTestStatus] = useState<{ loading: boolean; status: 'idle' | 'success' | 'error'; message: string }>({
     loading: false,
     status: 'idle',
     message: ''
@@ -32,13 +31,13 @@ const SettingsPage: React.FC = () => {
     setDbStatus('online');
   }, []);
 
-  const testWebhook = async () => {
-    setWebhookTestStatus({ loading: true, status: 'idle', message: '' });
+  const testService = async () => {
+    setServiceTestStatus({ loading: true, status: 'idle', message: '' });
     const result = await aiService.testIntegration();
-    setWebhookTestStatus({
+    setServiceTestStatus({
       loading: false,
       status: result.success ? 'success' : 'error',
-      message: result.message
+      message: result.message === "n8n Consagrado" ? "Conexão com o Servidor de Inteligência Ativa" : result.message
     });
   };
 
@@ -55,13 +54,13 @@ const SettingsPage: React.FC = () => {
           onClick={() => setActiveTab('general')}
           className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'general' ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
         >
-          Geral
+          Informações do Templo
         </button>
         <button 
           onClick={() => setActiveTab('automation')}
           className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'automation' ? 'bg-[#cfec0f] text-black' : 'text-gray-500 hover:text-white'}`}
         >
-          Hub n8n
+          Serviços de Conteúdo
         </button>
         <button 
           onClick={() => setActiveTab('infra')}
@@ -76,8 +75,8 @@ const SettingsPage: React.FC = () => {
           <div className="flex items-center gap-4">
             <div className="bg-white/5 p-3 rounded-xl text-white"><Building size={24} /></div>
             <div>
-              <h2 className="text-2xl font-black uppercase italic">Perfil do Templo</h2>
-              <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Identidade Holy Spirit</p>
+              <h2 className="text-2xl font-black uppercase italic">Perfil da Academia</h2>
+              <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Como sua academia aparece para o público</p>
             </div>
           </div>
 
@@ -87,7 +86,7 @@ const SettingsPage: React.FC = () => {
               <input value={settings.gymName} onChange={e => setSettings({...settings, gymName: e.target.value})} className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-white transition-all text-sm" />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">URL Instagram</label>
+              <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2">Perfil do Instagram</label>
               <div className="relative">
                 <Instagram className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
                 <input value={settings.instagram} onChange={e => setSettings({...settings, instagram: e.target.value})} className="w-full bg-black border border-white/10 rounded-2xl pl-14 pr-6 py-4 outline-none focus:border-white transition-all text-sm" />
@@ -97,7 +96,7 @@ const SettingsPage: React.FC = () => {
           
           <div className="pt-8 border-t border-white/5 flex justify-end">
             <button onClick={handleSave} className="bg-white text-black font-black px-12 py-5 rounded-2xl text-[10px] uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-3">
-              <Save size={16} /> Atualizar Templo
+              <Save size={16} /> Atualizar Informações
             </button>
           </div>
         </div>
@@ -109,34 +108,38 @@ const SettingsPage: React.FC = () => {
             <div className="flex items-center gap-4">
               <div className="bg-neon/10 p-3 rounded-xl text-neon"><Zap size={24} /></div>
               <div>
-                <h2 className="text-2xl font-black uppercase italic">Conexão Cloud Hub (n8n)</h2>
-                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">A inteligência reside exclusivamente no n8n</p>
+                <h2 className="text-2xl font-black uppercase italic">Conexão com o Centro de Inteligência</h2>
+                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Garante o funcionamento da geração de artigos</p>
               </div>
             </div>
             <button 
-              onClick={testWebhook}
-              disabled={webhookTestStatus.loading}
+              onClick={testService}
+              disabled={serviceTestStatus.loading}
               className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border ${
-                webhookTestStatus.status === 'success' ? 'bg-green-500/10 border-green-500 text-green-500' : 
-                webhookTestStatus.status === 'error' ? 'bg-red-500/10 border-red-500 text-red-500' :
+                serviceTestStatus.status === 'success' ? 'bg-green-500/10 border-green-500 text-green-500' : 
+                serviceTestStatus.status === 'error' ? 'bg-red-500/10 border-red-500 text-red-500' :
                 'bg-white/5 border-white/10 text-white hover:bg-white/10'
               }`}
             >
-              {webhookTestStatus.loading ? <Loader2 className="animate-spin" size={14} /> : <Activity size={14} />}
-              {webhookTestStatus.loading ? 'Sincronizando...' : 'Testar Conexão Cloud'}
+              {serviceTestStatus.loading ? <Loader2 className="animate-spin" size={14} /> : <Activity size={14} />}
+              {serviceTestStatus.loading ? 'Verificando Conexão...' : 'Testar Comunicação do Sistema'}
             </button>
           </div>
 
           <div className="p-10 bg-black/40 rounded-[32px] border border-white/5 space-y-6">
              <div className="flex items-center gap-3 text-neon font-black uppercase text-[10px] tracking-[0.2em]">
-               <Info size={16} /> Arquitetura Produção
+               <Info size={16} /> Estrutura de Conteúdo
              </div>
              <p className="text-zinc-400 text-sm leading-relaxed max-w-2xl">
-               Este site não possui lógica inteligente local. Todas as decisões de conteúdo são processadas pelo Hub Externo.
-               <code className="block mt-4 p-4 bg-black rounded-xl border border-white/10 text-neon font-mono text-[10px] break-all">
-                 Endpoint: https://felipealmeida0777.app.n8n.cloud/webhook/blog-generator
-               </code>
+               Seu site utiliza um serviço de ponta para criar artigos que convertem visitantes em alunos. Esta conexão garante que as ideias e temas definidos por você sejam transformados em conteúdo profissional.
              </p>
+             {serviceTestStatus.message && (
+               <div className={`mt-4 p-4 rounded-xl border text-[10px] font-mono ${
+                 serviceTestStatus.status === 'success' ? 'bg-green-500/5 border-green-500/20 text-green-400' : 'bg-red-500/5 border-red-500/20 text-red-400'
+               }`}>
+                 {serviceTestStatus.message}
+               </div>
+             )}
           </div>
         </div>
       )}
@@ -147,8 +150,8 @@ const SettingsPage: React.FC = () => {
             <div className="flex items-center gap-6">
               <div className="p-4 bg-black rounded-2xl text-green-400"><Database size={32} /></div>
               <div>
-                <h3 className="text-xl font-black uppercase italic">Banco de Dados Sincronizado</h3>
-                <p className="text-[10px] text-gray-500 uppercase font-black">Supabase Global Ativo</p>
+                <h3 className="text-xl font-black uppercase italic">Servidor de Dados Ativo</h3>
+                <p className="text-[10px] text-gray-500 uppercase font-black">Suas informações estão seguras e disponíveis</p>
               </div>
             </div>
           </div>
@@ -157,7 +160,7 @@ const SettingsPage: React.FC = () => {
 
       {success && (
         <div className="fixed bottom-10 right-10 bg-neon text-black px-8 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl animate-in slide-in-from-right-10">
-          Configurações Consagradas!
+          Configurações Atualizadas com Sucesso!
         </div>
       )}
     </div>

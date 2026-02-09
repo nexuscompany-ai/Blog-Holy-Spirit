@@ -17,7 +17,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  // States da IA
+  // States do Assistente
   const [iaPrompt, setIaPrompt] = useState('');
   const [targetCategory, setTargetCategory] = useState('Musculação');
   const [previewPost, setPreviewPost] = useState<any>(null);
@@ -28,7 +28,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
     title: '',
     content: '',
     excerpt: '',
-    category_id: null, // UUID ou null
+    category_id: null,
     image_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
   });
 
@@ -45,12 +45,12 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
           title: result.post.title,
           content: result.post.content,
           excerpt: result.post.excerpt,
-          category_id: null, // IA não sabe o UUID das categorias locais
+          category_id: null,
           image_url: '',
           published_at: null
         });
       } else {
-        throw new Error("Resposta da IA inválida.");
+        throw new Error("Não foi possível gerar o conteúdo no momento.");
       }
     } catch (error: any) {
       setErrorMsg(error.message);
@@ -74,7 +74,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
 
   const publishArticleManual = async (publish: boolean) => {
     if (!articleData.title) {
-      setErrorMsg("O título é obrigatório.");
+      setErrorMsg("O título é fundamental para o seu artigo.");
       return;
     }
     setLoading(true);
@@ -85,7 +85,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
       });
       onSuccess();
     } catch (error) {
-      setErrorMsg("Erro ao salvar artigo.");
+      setErrorMsg("Erro ao salvar artigo no site.");
     } finally {
       setLoading(false);
     }
@@ -108,13 +108,13 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
           onClick={() => { setActiveMode('ia'); setErrorMsg(''); setPreviewPost(null); }}
           className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeMode === 'ia' ? 'bg-[#cfec0f] text-black' : 'text-gray-500 hover:text-white'}`}
         >
-          <Sparkles size={14} /> Escritora IA (n8n)
+          <Sparkles size={14} /> Assistente de Redação
         </button>
         <button 
           onClick={() => { setActiveMode('manual'); setErrorMsg(''); }}
           className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeMode === 'manual' ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
         >
-          <PenTool size={14} /> Manual
+          <PenTool size={14} /> Escrita Manual
         </button>
       </div>
 
@@ -122,13 +122,13 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
         <div className="grid lg:grid-cols-2 gap-12 animate-in fade-in duration-700">
           <div className="bg-zinc-900/10 p-12 rounded-[40px] border border-white/5 space-y-8 h-fit">
             <h2 className="text-4xl font-black uppercase italic tracking-tighter text-[#cfec0f]">
-              {previewPost ? "Revelação Pronta" : "Orquestrar IA"}
+              {previewPost ? "Conteúdo Preparado" : "Preparar Novo Artigo"}
             </h2>
             
             {!previewPost ? (
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Contexto</label>
+                  <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Qual o foco do artigo?</label>
                   <select 
                     value={targetCategory} 
                     onChange={e => setTargetCategory(e.target.value)}
@@ -141,12 +141,12 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Tema</label>
+                  <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Sobre o que deseja falar hoje?</label>
                   <textarea
                     value={iaPrompt}
                     onChange={(e) => setIaPrompt(e.target.value)}
                     disabled={loading}
-                    placeholder="Ex: Como manter a disciplina..."
+                    placeholder="Ex: Benefícios do treino matinal para a disciplina..."
                     className="w-full bg-black border border-white/10 rounded-3xl p-8 outline-none focus:border-[#cfec0f] text-lg min-h-[200px] resize-none leading-relaxed transition-all"
                   />
                 </div>
@@ -157,24 +157,32 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                   className="w-full bg-[#cfec0f] text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] shadow-xl shadow-[#cfec0f]/20"
                 >
                   {loading ? <RefreshCw className="animate-spin" size={20} /> : <Zap size={20} />}
-                  GERAR CONTEÚDO
+                  {loading ? "PROCESSANDO CONTEÚDO..." : "GERAR SUGESTÃO DE ARTIGO"}
                 </button>
               </div>
             ) : (
               <div className="space-y-6 animate-in slide-in-from-bottom-4">
+                <div className="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-4">
+                  <div className="flex items-center gap-2 text-[#cfec0f]">
+                    <ShieldCheck size={16} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Artigo Revisado pelo Sistema</span>
+                  </div>
+                  <p className="text-zinc-400 text-xs">Este conteúdo foi criado para atrair o público ideal para sua academia.</p>
+                </div>
+
                 <button
                   onClick={handleConfirmSaveIA}
                   disabled={loading}
                   className="w-full bg-green-500 text-black font-black py-6 rounded-2xl flex items-center justify-center gap-4 hover:scale-[1.02] shadow-xl shadow-green-500/20"
                 >
                   {loading ? <Loader2 className="animate-spin" /> : <Send size={20} />}
-                  SALVAR RASCUNHO
+                  SALVAR COMO RASCUNHO
                 </button>
                 <button
                   onClick={() => setPreviewPost(null)}
                   className="w-full bg-zinc-800 text-white font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest"
                 >
-                  REFAZER
+                  REFAZER E EDITAR IDEIA
                 </button>
               </div>
             )}
@@ -196,7 +204,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
                 <FileText size={48} className="mb-4" />
-                <p className="text-[10px] font-black uppercase tracking-widest">Aguardando IA...</p>
+                <p className="text-[10px] font-black uppercase tracking-widest">Aguardando seu tema para criar...</p>
               </div>
             )}
           </div>
@@ -207,13 +215,13 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
             <input 
               value={articleData.title} 
               onChange={e => setArticleData({...articleData, title: e.target.value})} 
-              placeholder="Título do Artigo"
+              placeholder="Título do seu Artigo"
               className="w-full bg-zinc-900/20 border border-white/5 rounded-2xl px-8 py-6 text-2xl font-black italic outline-none focus:border-[#cfec0f]"
             />
             <textarea 
               value={articleData.content} 
               onChange={e => setArticleData({...articleData, content: e.target.value})} 
-              placeholder="Conteúdo em HTML..."
+              placeholder="Escreva seu conteúdo aqui..."
               className="w-full bg-zinc-900/20 border border-white/5 rounded-3xl p-10 text-base leading-loose min-h-[500px] outline-none focus:border-[#cfec0f]"
             />
           </div>
@@ -228,8 +236,8 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onSuccess }) => {
                 <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
               </div>
 
-              <button onClick={() => publishArticleManual(true)} className="w-full bg-[#cfec0f] text-black font-black py-5 rounded-2xl text-[10px] uppercase tracking-widest shadow-xl">LANÇAR AGORA</button>
-              <button onClick={() => publishArticleManual(false)} className="w-full bg-white/5 text-zinc-500 font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest border border-white/5">SALVAR RASCUNHO</button>
+              <button onClick={() => publishArticleManual(true)} className="w-full bg-[#cfec0f] text-black font-black py-5 rounded-2xl text-[10px] uppercase tracking-widest shadow-xl">PUBLICAR AGORA NO SITE</button>
+              <button onClick={() => publishArticleManual(false)} className="w-full bg-white/5 text-zinc-500 font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest border border-white/5">SALVAR COMO RASCUNHO</button>
             </div>
           </div>
         </div>
